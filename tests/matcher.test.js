@@ -33,6 +33,10 @@ describe('normalize', () => {
       .toBe('Error initializing listener of type tcp: listen tcp4 0.0.0.0:443: bind: permission denied')
   })
 
+  it('strips lowercase colon-terminated levels', () => {
+    expect(normalizeLine('error: expiration: failed to revoke lease')).toBe('expiration: failed to revoke lease')
+  })
+
   it('drops blank lines', () => {
     expect(normalize('\n  \nfoo\n\n')).toEqual(['foo'])
   })
@@ -106,6 +110,10 @@ describe('analyze: real-world log lines', () => {
     expect(Number.isInteger(r.confidence)).toBe(true)
     expect(r.confidence).toBeGreaterThan(0)
     expect(r.confidence).toBeLessThanOrEqual(100)
+  })
+
+  it('ranks lowercase "error:" lease revocation timeouts as revocation failures', () => {
+    expect(top('error: expiration: failed to revoke lease: lease_id=database/creds/app/abc error="failed to revoke entry: dial tcp 10.0.2.5:5432: i/o timeout"')[0]).toBe('token-revocation-failed')
   })
 
   it('ranks timestamp-first logfmt lines by logger', () => {

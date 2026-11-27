@@ -9,10 +9,11 @@ const PREFIX_RES = [
   // Go log package: "2024/01/02 15:04:05 "
   /^\d{4}\/\d{2}\/\d{2}\s+\d{2}:\d{2}:\d{2}(?:\.\d+)?\s*/,
   // hclog level: "[ERROR] ", "[WARN]  ", "ERROR: "
-  // Bracketed levels in any case; bare levels only in upper case so CLI
-  // messages such as "Error initializing listener" keep their first word.
+  // Bracketed or colon-terminated levels in any case; bare levels only in upper
+  // case so CLI messages such as "Error initializing listener" keep their first word.
   /^\[(?:TRACE|DEBUG|INFO|WARN|WARNING|ERROR|ERR|FATAL|PANIC|CRIT)\]:?\s*/i,
-  /^(?:TRACE|DEBUG|INFO|WARN|WARNING|ERROR|ERR|FATAL|PANIC|CRIT):?\s+/,
+  /^(?:TRACE|DEBUG|INFO|WARN|WARNING|ERROR|ERR|FATAL|PANIC|CRIT):\s+/i,
+  /^(?:TRACE|DEBUG|INFO|WARN|WARNING|ERROR|ERR|FATAL|PANIC|CRIT)\s+/,
   // logfmt / JSON-ish level and timestamp keys, in either order
   /^(?:@?level|lvl)=["']?\w+["']?\s+/i,
   /^(?:@?timestamp|time|ts)=["']?[0-9T:.\-+Z]+["']?\s+/i,
