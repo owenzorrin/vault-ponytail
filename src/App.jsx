@@ -3,15 +3,50 @@ import { analyze, catalog, VAULT_VERSIONS } from './matcher.js'
 import ResultCard from './components/ResultCard.jsx'
 import NoMatch from './components/NoMatch.jsx'
 
-const SAMPLES = [
+const SAMPLE_IDS = [
   'seal-awskms',
+  'seal-mlock',
+  'seal-hsm-pkcs11',
   'raft-heartbeat-election',
-  'token-permission-denied',
-  'tls-unknown-authority',
+  'raft-lost-quorum',
+  'raft-node-removed',
   'storage-dynamodb',
+  'storage-consul-lock-lost',
+  'storage-readonly',
+  'tls-unknown-authority',
+  'ha-forwarding-failed',
+  'network-listener-bind',
+  'token-permission-denied',
+  'token-quota-exceeded',
+  'auth-kubernetes',
+  'auth-approle',
+  'pki-crl-build',
+  'transit-invalid-ciphertext',
+  'audit-device-failed',
+  'identity-entity-invalid',
+  'replication-connection',
 ]
+
+const CATALOG_SAMPLES = SAMPLE_IDS
   .map((id) => catalog.entries.find((e) => e.id === id))
   .filter(Boolean)
+  .map((e) => ({ id: e.id, title: e.title, subsystem: e.subsystem, text: e.examples[0] }))
+
+const SAMPLES = [
+  ...CATALOG_SAMPLES,
+  {
+    id: 'multi-error-incident',
+    title: 'Multi-error incident log (3 lines)',
+    subsystem: 'multi',
+    text: [
+      '2024-05-01T10:00:00.000Z [ERROR] core: failed to unseal: error="fetching stored unseal keys failed: failed to decrypt keys from storage: AccessDeniedException: The ciphertext refers to a customer master key that does not exist"',
+      '2024-05-01T10:00:02.114Z [WARN]  storage.raft: heartbeat timeout reached, starting election: last-leader-addr=10.0.0.2:8201 last-leader-id=vault-2',
+      '2024-05-01T10:00:05.302Z [ERROR] core: error during forwarded RPC request: error="Get \\"https://vault.example.com:8200/v1/sys/health\\": x509: certificate signed by unknown authority"',
+    ].join('\n'),
+  },
+]
+
+const SAMPLE_SUBSYSTEMS = [...new Set(SAMPLES.map((s) => s.subsystem))]
 
 const subsystems = new Set(catalog.entries.map((e) => e.subsystem))
 
@@ -21,7 +56,13 @@ function App() {
   const [limit, setLimit] = useState(5)
   const [runId, setRunId] = useState(0)
   const [vaultVersion, setVaultVersion] = useState(() => VAULT_VERSIONS[VAULT_VERSIONS.length - 1] || null)
+  const [sampleFilter, setSampleFilter] = useState('all')
   const analyzedText = useRef(null)
+
+  const visibleSamples = useMemo(
+    () => (sampleFilter === 'all' ? SAMPLES : SAMPLES.filter((s) => s.subsystem === sampleFilter)),
+    [sampleFilter],
+  )
 
   const lineCount = useMemo(() => input.split('\n').filter((l) => l.trim()).length, [input])
 
@@ -31,9 +72,9 @@ function App() {
     analyzedText.current = text
   }
 
-  const loadSample = (entry) => {
-    setInput(entry.examples[0])
-    run(entry.examples[0])
+  const loadSample = (sample) => {
+    setInput(sample.text)
+    run(sample.text)
   }
 
   return (
@@ -90,10 +131,28 @@ function App() {
             <span className="hint">{lineCount} line{lineCount === 1 ? '' : 's'} &middot; Ctrl/Cmd+Enter</span>
           </div>
           <div className="samples">
-            <span>Try a sample:</span>
-            {SAMPLES.map((e) => (
-              <button key={e.id} className="sample-btn" onClick={() => loadSample(e)}>{e.title}</button>
-            ))}
+            <div className="samples-header">
+              <span>Try a sample ({visibleSamples.length}):</span>
+              <select
+                className="sample-filter"
+                aria-label="Filter samples by subsystem"
+                value={sampleFilter}
+                onChange={(e) => setSampleFilter(e.target.value)}
+              >
+                <option value="all">All subsystems ({SAMPLES.length})</option>
+                {SAMPLE_SUBSYSTEMS.map((sub) => (
+                  <option key={sub} value={sub}>{sub}</option>
+                ))}
+              </select>
+            </div>
+            <div className="sample-list">
+              {visibleSamples.map((s) => (
+                <button key={s.id} className="sample-btn" onClick={() => loadSample(s)}>
+                  <span className={`sample-sub subsystem-${s.subsystem}`}>{s.subsystem}</span>
+                  {s.title}
+                </button>
+              ))}
+            </div>
           </div>
         </section>
 
