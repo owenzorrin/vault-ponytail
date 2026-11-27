@@ -3253,8 +3253,8 @@
           "command": "grep -nE 'address|cluster_address' /etc/vault.d/vault.hcl"
         },
         {
-          "step": "For ports below 1024, grant the bind capability to the vault binary",
-          "command": "sudo setcap cap_net_bind_service=+ep $(readlink -f $(which vault))"
+          "step": "For ports below 1024, add the bind capability while keeping cap_ipc_lock (setcap replaces the whole set; check getcap first)",
+          "command": "getcap $(readlink -f $(which vault)); sudo setcap cap_ipc_lock,cap_net_bind_service=+ep $(readlink -f $(which vault))"
         },
         {
           "step": "Check SELinux denials",
