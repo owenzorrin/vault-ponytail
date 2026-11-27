@@ -141,9 +141,15 @@ body {
 .articles { margin-top: 12px; }
 .articles h4 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 .articles ol { margin: 0; padding-left: 20px; font-size: 13px; }
-.articles li { margin-bottom: 3px; }
+.articles li { margin-bottom: 4px; }
 .articles a { color: var(--external); text-decoration: none; }
 .articles a:hover { text-decoration: underline; }
+.article-tag {
+  display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase;
+  padding: 1px 6px; border-radius: 3px; margin-right: 6px; vertical-align: middle;
+}
+.article-tag-kb { background: #fdebd0; color: #9c4a00; }
+.article-tag-docs { background: #e8eef7; color: #2b4c7e; }
 .article-section { margin-left: 8px; font-size: 11px; }
 .references { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 12px; font-size: 12px; }
 .references a { color: var(--external); text-decoration: none; }

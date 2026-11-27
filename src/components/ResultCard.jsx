@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Checklist from './Checklist.jsx'
 import { rankArticles } from '../articles.js'
 
@@ -12,7 +12,10 @@ const LOCATION_HINT = {
 function ResultCard({ result, rank, defaultOpen }) {
   const { entry, confidence, matchedLines } = result
   const [open, setOpen] = useState(defaultOpen)
-  const articles = rankArticles(entry, matchedLines.join('\n'))
+  const articles = useMemo(
+    () => rankArticles(entry, matchedLines.join('\n')),
+    [entry, matchedLines],
+  )
 
   return (
     <article className={`result-card loc-border-${entry.location}`}>
@@ -77,12 +80,17 @@ function ResultCard({ result, rank, defaultOpen }) {
 
       {articles.length > 0 && (
         <div className="articles">
-          <h4>Related articles</h4>
+          <h4>Related KB &amp; docs</h4>
           <ol>
             {articles.map(({ article }) => (
               <li key={article.url}>
+                <span className={`article-tag article-tag-${article.source}`}>
+                  {article.source === 'kb' ? 'KB' : 'Docs'}
+                </span>
                 <a href={article.url} target="_blank" rel="noreferrer">{article.title}</a>
-                <span className="muted article-section">{article.section}</span>
+                {article.source !== 'kb' && (
+                  <span className="muted article-section">{article.section}</span>
+                )}
               </li>
             ))}
           </ol>
