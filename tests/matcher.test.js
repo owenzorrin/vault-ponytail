@@ -163,18 +163,19 @@ describe('article ranking', () => {
   it('surfaces real KB articles at the top for specific troubleshooting errors', async () => {
     const { rankArticles } = await import('../src/articles.js')
     for (const [id, expectedSubstring] of [
-      ['seal-mlock', 'mlock'],
+      ['seal-mlock', 'lock memory'],
       ['raft-lost-quorum', 'quorum'],
       ['raft-node-removed', 'removed'],
       ['tls-unknown-authority', 'unknown authority'],
       ['token-quota-exceeded', 'quota'],
       ['auth-kubernetes', 'kubernetes'],
+      ['auth-approle', 'approle'],
     ]) {
       const entry = catalog.entries.find((e) => e.id === id)
       const ranked = rankArticles(entry, entry.examples[0])
       expect(ranked[0].article.source).toBe('kb')
       expect(ranked[0].article.url).toMatch(/^https:\/\/www\.ibm\.com\/support\/pages\//)
-      expect(ranked.map((r) => r.article.title.toLowerCase()).join(' ')).toContain(expectedSubstring)
+      expect(ranked[0].article.title.toLowerCase()).toContain(expectedSubstring)
     }
   })
 
