@@ -23,9 +23,9 @@ function App() {
 
   const lineCount = useMemo(() => input.split('\n').filter((l) => l.trim()).length, [input])
 
-  const run = (text = input, n = limit) => {
+  const run = (text = input, n = limit, fresh = true) => {
     setResults(analyze(text, { limit: n }))
-    setRunId((id) => id + 1)
+    if (fresh) setRunId((id) => id + 1)
   }
 
   const loadSample = (entry) => {
@@ -71,7 +71,7 @@ function App() {
             </button>
             <label className="limit">
               Show top
-              <select value={limit} onChange={(e) => { const n = Number(e.target.value); setLimit(n); if (results) run(input, n) }}>
+              <select value={limit} onChange={(e) => { const n = Number(e.target.value); setLimit(n); if (results) run(input, n, false) }}>
                 {[3, 5, 10].map((n) => <option key={n} value={n}>{n}</option>)}
               </select>
             </label>
