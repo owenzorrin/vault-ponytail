@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Checklist from './Checklist.jsx'
 import { rankArticles } from '../articles.js'
 
@@ -12,7 +12,10 @@ const LOCATION_HINT = {
 function ResultCard({ result, rank, defaultOpen }) {
   const { entry, confidence, matchedLines } = result
   const [open, setOpen] = useState(defaultOpen)
-  const articles = rankArticles(entry, matchedLines.join('\n'))
+  const articles = useMemo(
+    () => rankArticles(entry, matchedLines.join('\n')),
+    [entry, matchedLines],
+  )
 
   return (
     <article className={`result-card loc-border-${entry.location}`}>
