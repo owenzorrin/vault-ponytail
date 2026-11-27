@@ -3245,8 +3245,8 @@
       ],
       "troubleshooting_steps": [
         {
-          "step": "Find what already holds the port",
-          "command": "sudo ss -ltnp | grep -E ':8200|:8201'"
+          "step": "Find what already holds the port from the error message",
+          "command": "sudo ss -ltnp 'sport = :<port>'"
         },
         {
           "step": "Check the listener address and cluster_address in the config",
