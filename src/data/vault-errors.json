@@ -1,0 +1,4845 @@
+{
+  "version": 1,
+  "generated_from": "hashicorp/vault (main) and related HashiCorp libraries",
+  "entries": [
+    {
+      "id": "seal-vault-sealed",
+      "title": "Vault is sealed",
+      "subsystem": "seal",
+      "location": "both",
+      "patterns": [
+        "\\bvault is sealed\\b",
+        "core is sealed",
+        "raft storage is sealed",
+        "Code: 503.*sealed"
+      ],
+      "summary": "The node is sealed: the barrier key is not in memory, so every request except status/unseal is rejected with HTTP 503.",
+      "internal_causes": [
+        "Node was restarted or crashed and nobody unsealed it (Shamir seal).",
+        "An operator or automation ran `vault operator seal`.",
+        "Vault sealed itself after an unrecoverable internal error (look for the preceding ERROR line)."
+      ],
+      "external_causes": [
+        "Auto-unseal KMS/HSM was unreachable at startup, so the node never unsealed.",
+        "Load balancer health check is routing traffic to a sealed node."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        },
+        {
+          "step": "Check seal type, recovery mode and unseal progress",
+          "command": "curl -s $VAULT_ADDR/v1/sys/seal-status | jq"
+        },
+        {
+          "step": "Scroll back in the log to the first ERROR before the seal; that line is the real cause"
+        },
+        {
+          "step": "Submit unseal key shares until the threshold is reached",
+          "command": "vault operator unseal"
+        },
+        {
+          "step": "For auto-unseal, verify the KMS/HSM is reachable from this host and restart Vault",
+          "command": "systemctl restart vault"
+        },
+        {
+          "step": "Query the health endpoint on every node (200 active, 429 standby, 473 perf standby, 501 uninitialized, 503 sealed)",
+          "command": "curl -s $VAULT_ADDR/v1/sys/health | jq"
+        }
+      ],
+      "references": [
+        {
+          "title": "Seal/Unseal concepts",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/seal"
+        },
+        {
+          "title": "vault operator unseal",
+          "url": "https://developer.hashicorp.com/vault/docs/commands/operator/unseal"
+        },
+        {
+          "title": "vault status command",
+          "url": "https://developer.hashicorp.com/vault/docs/commands/status"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/barrier.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/barrier.go"
+        }
+      ],
+      "examples": [
+        "Error making API request.\n\nURL: GET https://vault:8200/v1/secret/data/app\nCode: 503. Errors:\n\n* Vault is sealed"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/barrier.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/barrier.go"
+      }
+    },
+    {
+      "id": "seal-not-initialized",
+      "title": "Vault is not initialized",
+      "subsystem": "seal",
+      "location": "internal",
+      "patterns": [
+        "vault is not initialized",
+        "server is not yet initialized",
+        "Code: 501"
+      ],
+      "summary": "Storage contains no barrier/keyring, so Vault has never been initialized against this storage backend (or is pointed at the wrong one).",
+      "internal_causes": [
+        "Brand-new cluster that has not run `vault operator init`.",
+        "Raft follower that has not joined the cluster yet.",
+        "Config `path`/`storage` stanza changed and now points at an empty location."
+      ],
+      "external_causes": [
+        "Storage backend data was deleted or restored from an empty backup.",
+        "Wrong Consul/S3/DB prefix, bucket or table."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        },
+        {
+          "step": "Review the seal / storage / listener stanzas in the server config",
+          "command": "cat /etc/vault.d/vault.hcl"
+        },
+        {
+          "step": "If this is a raft follower, join it instead of initializing",
+          "command": "vault operator raft join https://<leader>:8200"
+        },
+        {
+          "step": "Only for a truly new cluster: initialize",
+          "command": "vault operator init"
+        }
+      ],
+      "references": [
+        {
+          "title": "vault operator init",
+          "url": "https://developer.hashicorp.com/vault/docs/commands/operator/init"
+        },
+        {
+          "title": "sys/health API",
+          "url": "https://developer.hashicorp.com/vault/api-docs/system/health"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/barrier.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/barrier.go"
+        }
+      ],
+      "examples": [
+        "Error making API request.\n\nCode: 400. Errors:\n\n* Vault is not initialized"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/barrier.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/barrier.go"
+      }
+    },
+    {
+      "id": "seal-unseal-invalid-key",
+      "title": "Unseal failed, invalid key",
+      "subsystem": "seal",
+      "location": "internal",
+      "patterns": [
+        "unseal failed,? invalid key",
+        "invalid key"
+      ],
+      "summary": "The combined unseal key shares did not decrypt the barrier keyring.",
+      "internal_causes": [
+        "Key shares come from a different cluster or a previous `vault operator init`.",
+        "Shares from a pre-rekey set were mixed with the current ones.",
+        "Shares were mistyped or base64/hex mixed."
+      ],
+      "external_causes": [
+        "Storage was restored from a backup taken after a rekey, so it expects different keys."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Check seal type, recovery mode and unseal progress",
+          "command": "curl -s $VAULT_ADDR/v1/sys/seal-status | jq"
+        },
+        {
+          "step": "Reset unseal progress and start again with shares from a single key set",
+          "command": "vault operator unseal -reset"
+        },
+        {
+          "step": "Submit unseal key shares until the threshold is reached",
+          "command": "vault operator unseal"
+        },
+        {
+          "step": "Confirm with the key custodians which init/rekey generation the shares belong to"
+        }
+      ],
+      "references": [
+        {
+          "title": "vault operator unseal",
+          "url": "https://developer.hashicorp.com/vault/docs/commands/operator/unseal"
+        },
+        {
+          "title": "vault operator rekey",
+          "url": "https://developer.hashicorp.com/vault/docs/commands/operator/rekey"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/barrier.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/barrier.go"
+        }
+      ],
+      "examples": [
+        "Error unsealing: Error making API request.\n\nURL: PUT https://127.0.0.1:8200/v1/sys/unseal\nCode: 400. Errors:\n\n* Unseal failed, invalid key"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/barrier.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/barrier.go"
+      }
+    },
+    {
+      "id": "seal-wrapper-unreachable",
+      "title": "Auto-unseal seal wrapper unreachable",
+      "subsystem": "seal",
+      "location": "external",
+      "patterns": [
+        "seal wrapper may be unreachable",
+        "failed to (encrypt|decrypt) test value",
+        "no healthy seals",
+        "seal is unhealthy",
+        "failed to decrypt health test value"
+      ],
+      "summary": "Vault's periodic seal health check, or startup unseal, could not complete an encrypt/decrypt round trip with the auto-unseal KMS/HSM.",
+      "internal_causes": [
+        "Seal stanza has the wrong key ID, region, endpoint or mount path."
+      ],
+      "external_causes": [
+        "KMS/HSM endpoint not reachable (DNS, proxy, firewall, VPC endpoint, private link).",
+        "IAM/credentials for the seal expired or were changed.",
+        "KMS key disabled, scheduled for deletion, or its key policy changed.",
+        "KMS throttling or regional outage."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        },
+        {
+          "step": "Check the seal stanza for key id, region and endpoint",
+          "command": "grep -A10 '^seal' /etc/vault.d/vault.hcl"
+        },
+        {
+          "step": "From the Vault host, confirm which IAM identity Vault is using",
+          "command": "aws sts get-caller-identity"
+        },
+        {
+          "step": "AWS KMS: test the key from the Vault host using Vault's credentials",
+          "command": "aws kms describe-key --key-id <kms_key_id> --region <region>"
+        },
+        {
+          "step": "Confirm network reachability to the KMS endpoint",
+          "command": "curl -sv https://kms.<region>.amazonaws.com 2>&1 | head -20"
+        },
+        {
+          "step": "Stream server logs at debug level without a restart",
+          "command": "vault monitor -log-level=debug"
+        }
+      ],
+      "references": [
+        {
+          "title": "Seal/Unseal concepts",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/seal"
+        },
+        {
+          "title": "AWS KMS seal configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/seal/awskms"
+        },
+        {
+          "title": "vault operator diagnose",
+          "url": "https://developer.hashicorp.com/vault/docs/commands/operator/diagnose"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/seal/seal_wrapper.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/seal/seal_wrapper.go"
+        }
+      ],
+      "examples": [
+        "2024-05-01T10:00:00.000Z [WARN]  core: seal health check failed: error=\"failed to encrypt test value, seal wrapper may be unreachable: context deadline exceeded\""
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/seal/seal_wrapper.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/seal/seal_wrapper.go"
+      }
+    },
+    {
+      "id": "seal-awskms",
+      "title": "AWS KMS auto-unseal error",
+      "subsystem": "seal",
+      "location": "external",
+      "patterns": [
+        "error initializing AWS KMS wrapping client",
+        "error fetching AWS KMS wrapping key information",
+        "key id not found in env or config for aws kms wrapper",
+        "AccessDeniedException",
+        "KMSInvalidStateException",
+        "(NotFoundException|DisabledException).*(kms|key)",
+        "kms.*(NoCredentialProviders|ExpiredToken)"
+      ],
+      "summary": "Vault could not use the AWS KMS key configured in `seal \"awskms\"`.",
+      "internal_causes": [
+        "`kms_key_id`, `region` or `endpoint` is wrong in the seal stanza."
+      ],
+      "external_causes": [
+        "IAM role/instance profile lacks kms:Encrypt, kms:Decrypt or kms:DescribeKey.",
+        "KMS key policy does not trust Vault's IAM principal.",
+        "Key is disabled or pending deletion (KMSInvalidStateException).",
+        "No route to KMS (missing VPC endpoint, proxy, SCP or firewall)."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "From the Vault host, confirm which IAM identity Vault is using",
+          "command": "aws sts get-caller-identity"
+        },
+        {
+          "step": "Describe the key and check KeyState is Enabled",
+          "command": "aws kms describe-key --key-id <kms_key_id> --region <region>"
+        },
+        {
+          "step": "Test encrypt with Vault's credentials",
+          "command": "aws kms encrypt --key-id <kms_key_id> --plaintext fileb://<(echo test) --region <region>"
+        },
+        {
+          "step": "Review the key policy for Vault's role",
+          "command": "aws kms get-key-policy --key-id <kms_key_id> --policy-name default --region <region>"
+        },
+        {
+          "step": "Check CloudTrail for denied kms:Decrypt / kms:Encrypt calls from Vault's role"
+        },
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        }
+      ],
+      "references": [
+        {
+          "title": "AWS KMS seal configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/seal/awskms"
+        },
+        {
+          "title": "Source: hashicorp/go-kms-wrapping/wrappers/awskms/awskms.go",
+          "url": "https://github.com/hashicorp/go-kms-wrapping/blob/main/wrappers/awskms/awskms.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] core: failed to unseal: error=\"error fetching AWS KMS wrapping key information: AccessDeniedException: User: arn:aws:sts::123456789012:assumed-role/vault/i-0abc is not authorized to perform: kms:DescribeKey\""
+      ],
+      "source": {
+        "repo": "hashicorp/go-kms-wrapping",
+        "path": "wrappers/awskms/awskms.go",
+        "url": "https://github.com/hashicorp/go-kms-wrapping/blob/main/wrappers/awskms/awskms.go"
+      }
+    },
+    {
+      "id": "seal-azurekeyvault",
+      "title": "Azure Key Vault auto-unseal error",
+      "subsystem": "seal",
+      "location": "external",
+      "patterns": [
+        "error initializing Azure Key Vault wrapper client",
+        "error fetching Azure Key Vault wrapper key information",
+        "failed to acquire managed identity credentials",
+        "failed to get client secret credentials",
+        "failed to create keyvault client"
+      ],
+      "summary": "Vault could not authenticate to, or read the key from, Azure Key Vault for auto-unseal.",
+      "internal_causes": [
+        "`vault_name`, `key_name`, `tenant_id` or `environment` wrong in the seal stanza."
+      ],
+      "external_causes": [
+        "Managed identity not assigned to the VM/pod, or client secret expired.",
+        "Key Vault access policy / RBAC lacks get, wrapKey and unwrapKey.",
+        "Key Vault firewall or private endpoint blocks the Vault host."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Confirm the identity can read the key",
+          "command": "az keyvault key show --vault-name <vault_name> --name <key_name>"
+        },
+        {
+          "step": "Check access policies / role assignments for wrapKey and unwrapKey",
+          "command": "az keyvault show --name <vault_name> --query properties.accessPolicies"
+        },
+        {
+          "step": "Check the Key Vault network rules",
+          "command": "az keyvault network-rule list --name <vault_name>"
+        },
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        }
+      ],
+      "references": [
+        {
+          "title": "Azure Key Vault seal configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/seal/azurekeyvault"
+        },
+        {
+          "title": "Source: hashicorp/go-kms-wrapping/wrappers/azurekeyvault/azurekeyvault.go",
+          "url": "https://github.com/hashicorp/go-kms-wrapping/blob/main/wrappers/azurekeyvault/azurekeyvault.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] core: failed to unseal: error=\"error fetching Azure Key Vault wrapper key information: keyvault.BaseClient#GetKey: Failure responding to request: StatusCode=403\""
+      ],
+      "source": {
+        "repo": "hashicorp/go-kms-wrapping",
+        "path": "wrappers/azurekeyvault/azurekeyvault.go",
+        "url": "https://github.com/hashicorp/go-kms-wrapping/blob/main/wrappers/azurekeyvault/azurekeyvault.go"
+      }
+    },
+    {
+      "id": "seal-gcpckms",
+      "title": "GCP Cloud KMS auto-unseal error",
+      "subsystem": "seal",
+      "location": "external",
+      "patterns": [
+        "error initializing GCP CKMS wrapper client",
+        "'(crypto_key|key_ring|project|region)' not found for GCP CKMS wrapper configuration",
+        "cloudkms.*(PermissionDenied|Permission .* denied)"
+      ],
+      "summary": "Vault could not reach or use the Google Cloud KMS key configured in `seal \"gcpckms\"`.",
+      "internal_causes": [
+        "`project`, `region`, `key_ring` or `crypto_key` missing or wrong in the seal stanza."
+      ],
+      "external_causes": [
+        "Service account lacks roles/cloudkms.cryptoKeyEncrypterDecrypter on the key.",
+        "GOOGLE_APPLICATION_CREDENTIALS not readable by the vault user.",
+        "Key version disabled or destroyed."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Describe the crypto key and check the primary version state",
+          "command": "gcloud kms keys describe <crypto_key> --keyring <key_ring> --location <region> --project <project>"
+        },
+        {
+          "step": "Check IAM bindings on the key",
+          "command": "gcloud kms keys get-iam-policy <crypto_key> --keyring <key_ring> --location <region>"
+        },
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        }
+      ],
+      "references": [
+        {
+          "title": "GCP Cloud KMS seal configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/seal/gcpckms"
+        },
+        {
+          "title": "Source: hashicorp/go-kms-wrapping/wrappers/gcpckms/gcpckms.go",
+          "url": "https://github.com/hashicorp/go-kms-wrapping/blob/main/wrappers/gcpckms/gcpckms.go"
+        }
+      ],
+      "examples": [
+        "Error parsing Seal configuration: 'crypto_key' not found for GCP CKMS wrapper configuration"
+      ],
+      "source": {
+        "repo": "hashicorp/go-kms-wrapping",
+        "path": "wrappers/gcpckms/gcpckms.go",
+        "url": "https://github.com/hashicorp/go-kms-wrapping/blob/main/wrappers/gcpckms/gcpckms.go"
+      }
+    },
+    {
+      "id": "seal-transit",
+      "title": "Transit auto-unseal error",
+      "subsystem": "seal",
+      "location": "external",
+      "patterns": [
+        "after (en|de)crypt operation .*(returned from vault|returned secret from vault)",
+        "transit seal configuration is invalid",
+        "(transit|seal).*Code: 403.*permission denied",
+        "error (en|de)crypting data: Error making API request"
+      ],
+      "summary": "Vault could not use the remote Vault Transit key that unseals this cluster.",
+      "internal_causes": [
+        "`address`, `mount_path` or `key_name` wrong in the seal stanza."
+      ],
+      "external_causes": [
+        "The transit cluster is sealed, down or unreachable.",
+        "The seal token expired or was revoked (it must be a periodic or long-lived token).",
+        "Token policy lacks update on transit/encrypt/<key> and transit/decrypt/<key>.",
+        "TLS CA/client cert for the transit cluster is invalid."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Check the transit (unsealer) cluster health",
+          "command": "VAULT_ADDR=<transit-addr> vault status"
+        },
+        {
+          "step": "Check the seal token TTL and policies on the transit cluster",
+          "command": "VAULT_ADDR=<transit-addr> VAULT_TOKEN=<seal-token> vault token lookup"
+        },
+        {
+          "step": "Confirm the key exists",
+          "command": "VAULT_ADDR=<transit-addr> vault read transit/keys/<key_name>"
+        },
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        }
+      ],
+      "references": [
+        {
+          "title": "Transit seal configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/seal/transit"
+        },
+        {
+          "title": "Source: hashicorp/go-kms-wrapping/wrappers/transit/transit_client.go",
+          "url": "https://github.com/hashicorp/go-kms-wrapping/blob/main/wrappers/transit/transit_client.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] core: failed to unseal: error=\"error decrypting data: Error making API request.\n\nURL: PUT https://transit-vault:8200/v1/transit/decrypt/autounseal\nCode: 403. Errors:\n\n* permission denied\""
+      ],
+      "source": {
+        "repo": "hashicorp/go-kms-wrapping",
+        "path": "wrappers/transit/transit_client.go",
+        "url": "https://github.com/hashicorp/go-kms-wrapping/blob/main/wrappers/transit/transit_client.go"
+      }
+    },
+    {
+      "id": "seal-hsm-pkcs11",
+      "title": "HSM (PKCS#11) seal error",
+      "subsystem": "seal",
+      "location": "external",
+      "patterns": [
+        "\\bCKR_[A-Z_]+\\b",
+        "pkcs11",
+        "error initializing (pkcs11|HSM)"
+      ],
+      "summary": "The Enterprise PKCS#11 seal received an error from the HSM library (CKR_* return codes come from the HSM).",
+      "internal_causes": [
+        "Wrong `lib`, `slot`/`token_label`, `pin`, `key_label` or mechanism in the seal stanza."
+      ],
+      "external_causes": [
+        "HSM unreachable or partition offline (network HSM).",
+        "HSM client software version mismatch or session limit reached.",
+        "PIN locked/expired (CKR_PIN_INCORRECT, CKR_PIN_LOCKED).",
+        "Key not found in the partition (CKR_KEY_HANDLE_INVALID / CKR_OBJECT_HANDLE_INVALID)."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "List slots/tokens visible to the Vault host",
+          "command": "pkcs11-tool --module <lib.so> --list-slots"
+        },
+        {
+          "step": "Log in and list objects with the configured PIN",
+          "command": "pkcs11-tool --module <lib.so> --login --list-objects"
+        },
+        {
+          "step": "Check the HSM vendor client logs and connectivity"
+        },
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        }
+      ],
+      "references": [
+        {
+          "title": "PKCS#11 HSM seal configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/seal/pkcs11"
+        }
+      ],
+      "examples": [
+        "[ERROR] core: failed to unseal: error=\"error decrypting data: pkcs11: 0x30: CKR_DEVICE_ERROR\""
+      ],
+      "source": {
+        "repo": null,
+        "note": "HSM PKCS#11 return codes (Vault Enterprise HSM seal)"
+      }
+    },
+    {
+      "id": "seal-migration-required",
+      "title": "Seal migration required / pending",
+      "subsystem": "seal",
+      "location": "internal",
+      "patterns": [
+        "requires seal migration",
+        "migrate option not provided and seal migration is pending",
+        "no migration seal found",
+        "cannot seal migrate from",
+        "no disabled seal in configuration",
+        "cannot auto-unseal during seal migration",
+        "cannot run in recovery mode when a seal migration is needed"
+      ],
+      "summary": "The seal in the config differs from the seal that protects the data in storage, and Vault will not switch until a seal migration is run.",
+      "internal_causes": [
+        "Seal stanza changed (Shamir to auto-unseal, auto-unseal to Shamir, or KMS to KMS) without `disabled = \"true\"` on the old seal.",
+        "Not every node got the same config change.",
+        "Migration started but was not finished on all nodes."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Review the seal / storage / listener stanzas in the server config",
+          "command": "cat /etc/vault.d/vault.hcl"
+        },
+        {
+          "step": "Check seal type, recovery mode and unseal progress",
+          "command": "curl -s $VAULT_ADDR/v1/sys/seal-status | jq"
+        },
+        {
+          "step": "Keep the old seal in the config with disabled = \"true\" next to the new seal, then restart Vault"
+        },
+        {
+          "step": "Unseal with -migrate on each node (standbys first, then the active node)",
+          "command": "vault operator unseal -migrate"
+        },
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        }
+      ],
+      "references": [
+        {
+          "title": "Seal migration",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/seal#seal-migration"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/core.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/core.go"
+        }
+      ],
+      "examples": [
+        "[WARN]  core: migrate option not provided and seal migration is pending"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/core.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/core.go"
+      }
+    },
+    {
+      "id": "seal-keys-unreadable",
+      "title": "Neither old nor new seal can read stored keys",
+      "subsystem": "seal",
+      "location": "both",
+      "patterns": [
+        "neither the old nor new seal can read stored keys",
+        "decrypt error, neither the old nor new seal"
+      ],
+      "summary": "During seal migration Vault tried both seals and neither could decrypt the stored keys.",
+      "internal_causes": [
+        "Both seal stanzas point at the wrong keys.",
+        "Storage was restored from a different cluster."
+      ],
+      "external_causes": [
+        "The old KMS key was deleted or disabled before migration finished.",
+        "Credentials for either KMS are invalid."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Review the seal / storage / listener stanzas in the server config",
+          "command": "cat /etc/vault.d/vault.hcl"
+        },
+        {
+          "step": "Verify both KMS keys are enabled and accessible with Vault's credentials"
+        },
+        {
+          "step": "Check seal type, recovery mode and unseal progress",
+          "command": "curl -s $VAULT_ADDR/v1/sys/seal-status | jq"
+        },
+        {
+          "step": "Stream server logs at debug level without a restart",
+          "command": "vault monitor -log-level=debug"
+        }
+      ],
+      "references": [
+        {
+          "title": "Seal migration",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/seal#seal-migration"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/core.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/core.go"
+        }
+      ],
+      "examples": [
+        "Error unsealing: neither the old nor new seal can read stored keys: old seal err=AccessDeniedException, new seal err=<nil>"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/core.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/core.go"
+      }
+    },
+    {
+      "id": "seal-generation-mismatch",
+      "title": "Newer seal generation found in storage",
+      "subsystem": "seal",
+      "location": "internal",
+      "patterns": [
+        "newer seal generation (was )?found in storage",
+        "seal configuration in this node should be updated to match"
+      ],
+      "summary": "Another node changed the seal configuration (multi-seal / seal HA) and this node's config is out of date.",
+      "internal_causes": [
+        "Seal stanzas differ between nodes after a seal config change."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Diff the seal stanzas across all nodes",
+          "command": "grep -A15 '^seal' /etc/vault.d/vault.hcl"
+        },
+        {
+          "step": "Copy the config from the previous active node, then restart this node",
+          "command": "systemctl restart vault"
+        },
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        }
+      ],
+      "references": [
+        {
+          "title": "Seal/Unseal concepts",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/seal"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/core.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/core.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] core: A newer seal generation was found in storage. The seal configuration in this node should be updated to match that of the previous active node, and this node should be restarted."
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/core.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/core.go"
+      }
+    },
+    {
+      "id": "seal-decrypt-failed",
+      "title": "Seal decrypt failed",
+      "subsystem": "seal",
+      "location": "both",
+      "patterns": [
+        "error decrypting using seal",
+        "failed to decrypt envelope",
+        "error decrypting data encryption key",
+        "value has no key-id in common with currently healthy seals"
+      ],
+      "summary": "A seal-wrapped value could not be decrypted with the configured seal key(s).",
+      "internal_causes": [
+        "Seal config points to a different key than the one that wrapped the data."
+      ],
+      "external_causes": [
+        "KMS key was rotated with old versions disabled, or the key was replaced.",
+        "KMS denied decrypt (IAM/key policy) or the KMS is unreachable."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Review the seal / storage / listener stanzas in the server config",
+          "command": "cat /etc/vault.d/vault.hcl"
+        },
+        {
+          "step": "Check KMS audit logs (CloudTrail / Azure Monitor / Cloud Audit Logs) for failed Decrypt calls"
+        },
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        },
+        {
+          "step": "Stream server logs at debug level without a restart",
+          "command": "vault monitor -log-level=debug"
+        }
+      ],
+      "references": [
+        {
+          "title": "Seal/Unseal concepts",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/seal"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/seal/seal.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/seal/seal.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] core: error decrypting using seal awskms: failed to decrypt envelope: cipher: message authentication failed"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/seal/seal.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/seal/seal.go"
+      }
+    },
+    {
+      "id": "seal-config-missing",
+      "title": "Barrier initialized but seal configuration missing",
+      "subsystem": "seal",
+      "location": "both",
+      "patterns": [
+        "barrier reports initialized but no seal configuration found",
+        "Recovery seal configuration not found for existing seal",
+        "failed to obtain seal/recovery configuration"
+      ],
+      "summary": "Storage has a keyring but the seal/recovery configuration entries are missing or unreadable.",
+      "internal_causes": [
+        "Partial restore or manual edits of core/ storage paths."
+      ],
+      "external_causes": [
+        "Storage backend returned partial data (eventual consistency, wrong prefix).",
+        "Backup restore missing core/seal-config or core/recovery-config."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Run offline checks of config, listener TLS, storage and seal",
+          "command": "vault operator diagnose -config=/etc/vault.d/vault.hcl"
+        },
+        {
+          "step": "Review the seal / storage / listener stanzas in the server config",
+          "command": "cat /etc/vault.d/vault.hcl"
+        },
+        {
+          "step": "Contact HashiCorp support before changing storage; collect a storage listing of core/"
+        }
+      ],
+      "references": [
+        {
+          "title": "Seal/Unseal concepts",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/seal"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/init.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/init.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] core: barrier reports initialized but no seal configuration found"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/init.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/init.go"
+      }
+    },
+    {
+      "id": "seal-standby-cannot-seal",
+      "title": "Cannot seal a standby node",
+      "subsystem": "seal",
+      "location": "internal",
+      "patterns": [
+        "vault cannot seal when in standby mode"
+      ],
+      "summary": "`vault operator seal` was sent to a standby. Only the active node can be sealed through the API.",
+      "internal_causes": [
+        "Request reached a standby node directly or through a load balancer."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        },
+        {
+          "step": "Send the seal request to the active node, or restart/stop the standby instead",
+          "command": "systemctl stop vault"
+        }
+      ],
+      "references": [
+        {
+          "title": "High availability mode",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/ha"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/core.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/core.go"
+        }
+      ],
+      "examples": [
+        "Error sealing: Error making API request.\n\nCode: 500. Errors:\n\n* vault cannot seal when in standby mode; please restart instead"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/core.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/core.go"
+      }
+    },
+    {
+      "id": "seal-mlock",
+      "title": "Failed to lock memory (mlock)",
+      "subsystem": "seal",
+      "location": "external",
+      "patterns": [
+        "failed to lock memory",
+        "mlock syscall is not available"
+      ],
+      "summary": "Vault could not mlock its memory at startup, so it refuses to start rather than risk swapping secrets to disk.",
+      "internal_causes": [
+        "`disable_mlock` not set where mlock is unsupported."
+      ],
+      "external_causes": [
+        "Missing IPC_LOCK capability (containers) or CAP_IPC_LOCK on the binary.",
+        "LimitMEMLOCK too low in the systemd unit."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Grant the capability to the binary",
+          "command": "sudo setcap cap_ipc_lock=+ep $(readlink -f $(which vault))"
+        },
+        {
+          "step": "Check the systemd unit for LimitMEMLOCK=infinity and AmbientCapabilities=CAP_IPC_LOCK",
+          "command": "systemctl cat vault"
+        },
+        {
+          "step": "With integrated storage, HashiCorp recommends disable_mlock = true"
+        }
+      ],
+      "references": [
+        {
+          "title": "disable_mlock parameter",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration#disable_mlock"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/core.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/core.go"
+        }
+      ],
+      "examples": [
+        "Error initializing core: Failed to lock memory: cannot allocate memory\n\nThis usually means that the mlock syscall is not available."
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/core.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/core.go"
+      }
+    },
+    {
+      "id": "raft-heartbeat-election",
+      "title": "Raft heartbeat timeout and election",
+      "subsystem": "raft",
+      "location": "both",
+      "patterns": [
+        "heartbeat timeout reached, starting election",
+        "election timeout reached, restarting election",
+        "entering candidate state",
+        "pre-vote campaign failed"
+      ],
+      "summary": "A follower stopped hearing from the leader and started an election. Occasional elections are normal; repeated ones mean the cluster is unstable.",
+      "internal_causes": [
+        "Leader overloaded (large snapshots, heavy write load, GC pauses).",
+        "Mismatched `performance_multiplier` across nodes."
+      ],
+      "external_causes": [
+        "Network latency, packet loss or partition on port 8201.",
+        "Slow disk (fsync latency) on the leader or follower.",
+        "VM CPU steal or noisy neighbors."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "List raft peers; confirm one leader and that all voters are present",
+          "command": "vault operator raft list-peers"
+        },
+        {
+          "step": "Check autopilot health, last contact and log index of each server",
+          "command": "vault operator raft autopilot state"
+        },
+        {
+          "step": "Verify API (8200) and cluster (8201) ports are reachable between every pair of nodes",
+          "command": "nc -zv <peer-host> 8200 && nc -zv <peer-host> 8201"
+        },
+        {
+          "step": "Check disk latency on the raft data volume",
+          "command": "iostat -x 1 5"
+        },
+        {
+          "step": "Check vault.raft metrics (commitTime, leader.lastContact)",
+          "command": "curl -s -H \"X-Vault-Token: $VAULT_TOKEN\" $VAULT_ADDR/v1/sys/metrics | jq '.Gauges[] | select(.Name|test(\"raft\"))'"
+        },
+        {
+          "step": "Stream server logs at debug level without a restart",
+          "command": "vault monitor -log-level=debug"
+        }
+      ],
+      "references": [
+        {
+          "title": "Integrated storage (raft) configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/storage/raft"
+        },
+        {
+          "title": "Integrated storage concepts",
+          "url": "https://developer.hashicorp.com/vault/docs/internals/integrated-storage"
+        },
+        {
+          "title": "Source: hashicorp/raft/raft.go",
+          "url": "https://github.com/hashicorp/raft/blob/main/raft.go"
+        }
+      ],
+      "examples": [
+        "2024-05-01T10:00:00.000Z [WARN]  storage.raft: heartbeat timeout reached, starting election: last-leader-addr=10.0.0.11:8201 last-leader-id=vault-1"
+      ],
+      "source": {
+        "repo": "hashicorp/raft",
+        "path": "raft.go",
+        "url": "https://github.com/hashicorp/raft/blob/main/raft.go"
+      }
+    },
+    {
+      "id": "raft-lost-quorum",
+      "title": "Raft lost quorum",
+      "subsystem": "raft",
+      "location": "both",
+      "patterns": [
+        "failed to contact quorum of nodes",
+        "no known peers, aborting election",
+        "leadership lost while committing log",
+        "not part of (a )?stable configuration, aborting election"
+      ],
+      "summary": "The leader could not reach a majority of voters and stepped down, or no node can win an election. Writes stop until quorum returns.",
+      "internal_causes": [
+        "Too many voters removed or failed (for example 2 of 3).",
+        "Nodes removed from the configuration but still running."
+      ],
+      "external_causes": [
+        "Network partition between availability zones or a firewall change on port 8201.",
+        "Hosts down, disks full, or pods rescheduled with lost volumes."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "List raft peers; confirm one leader and that all voters are present",
+          "command": "vault operator raft list-peers"
+        },
+        {
+          "step": "Query the health endpoint on every node (200 active, 429 standby, 473 perf standby, 501 uninitialized, 503 sealed)",
+          "command": "curl -s $VAULT_ADDR/v1/sys/health | jq"
+        },
+        {
+          "step": "Verify API (8200) and cluster (8201) ports are reachable between every pair of nodes",
+          "command": "nc -zv <peer-host> 8200 && nc -zv <peer-host> 8201"
+        },
+        {
+          "step": "Check disk space on the raft data directory",
+          "command": "df -h /opt/vault/data"
+        },
+        {
+          "step": "If quorum cannot come back, follow the lost-quorum procedure with peers.json"
+        }
+      ],
+      "references": [
+        {
+          "title": "Recover from lost quorum",
+          "url": "https://developer.hashicorp.com/vault/tutorials/raft/raft-lost-quorum"
+        },
+        {
+          "title": "Integrated storage (raft) configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/storage/raft"
+        },
+        {
+          "title": "Source: hashicorp/raft/raft.go",
+          "url": "https://github.com/hashicorp/raft/blob/main/raft.go"
+        }
+      ],
+      "examples": [
+        "[WARN]  storage.raft: failed to contact quorum of nodes, stepping down"
+      ],
+      "source": {
+        "repo": "hashicorp/raft",
+        "path": "raft.go",
+        "url": "https://github.com/hashicorp/raft/blob/main/raft.go"
+      }
+    },
+    {
+      "id": "raft-rpc-failures",
+      "title": "Raft replication/heartbeat RPC failures",
+      "subsystem": "raft",
+      "location": "external",
+      "patterns": [
+        "failed to appendEntries to",
+        "failed to heartbeat to",
+        "failed to pipeline appendEntries",
+        "failed to make requestVote RPC",
+        "raft.*(dial tcp|i/o timeout|connection refused|connection reset)"
+      ],
+      "summary": "The raft leader cannot send log entries or heartbeats to a peer over the cluster port.",
+      "internal_causes": [
+        "`cluster_addr` advertises an address other nodes cannot reach (NAT, 0.0.0.0, container IP)."
+      ],
+      "external_causes": [
+        "Firewall or security group blocking 8201.",
+        "Peer down or restarting.",
+        "TLS interception or a proxy on the cluster port (raft uses mTLS that Vault manages)."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "List raft peers; confirm one leader and that all voters are present",
+          "command": "vault operator raft list-peers"
+        },
+        {
+          "step": "Verify API (8200) and cluster (8201) ports are reachable between every pair of nodes",
+          "command": "nc -zv <peer-host> 8200 && nc -zv <peer-host> 8201"
+        },
+        {
+          "step": "Check cluster_addr / api_addr in the config of the failing peer",
+          "command": "grep -E 'cluster_addr|api_addr' /etc/vault.d/vault.hcl"
+        },
+        {
+          "step": "Check autopilot health, last contact and log index of each server",
+          "command": "vault operator raft autopilot state"
+        }
+      ],
+      "references": [
+        {
+          "title": "Integrated storage (raft) configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/storage/raft"
+        },
+        {
+          "title": "High availability mode",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/ha"
+        },
+        {
+          "title": "Source: hashicorp/raft/replication.go",
+          "url": "https://github.com/hashicorp/raft/blob/main/replication.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] storage.raft: failed to appendEntries to: peer=\"{Voter vault-2 10.0.0.12:8201}\" error=\"dial tcp 10.0.0.12:8201: connect: connection refused\""
+      ],
+      "source": {
+        "repo": "hashicorp/raft",
+        "path": "replication.go",
+        "url": "https://github.com/hashicorp/raft/blob/main/replication.go"
+      }
+    },
+    {
+      "id": "raft-rejecting-vote",
+      "title": "Raft rejecting vote requests",
+      "subsystem": "raft",
+      "location": "internal",
+      "patterns": [
+        "rejecting (pre-)?vote request since (we have a leader|node is not in configuration|node is not a voter|our last (index|term) is greater)"
+      ],
+      "summary": "A node that is not part of the current configuration, or is behind, keeps asking for votes. Usually a removed or rejoined node that still has old raft data.",
+      "internal_causes": [
+        "Node removed with `remove-peer` but still running with old data.",
+        "Node restored from an old disk/snapshot, so its term/index is behind.",
+        "Duplicate node_id across nodes."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "List raft peers; confirm one leader and that all voters are present",
+          "command": "vault operator raft list-peers"
+        },
+        {
+          "step": "Check node_id in each node's raft stanza is unique",
+          "command": "grep node_id /etc/vault.d/vault.hcl"
+        },
+        {
+          "step": "Stop the stray node, wipe its raft data dir and rejoin",
+          "command": "vault operator raft join https://<leader>:8200"
+        }
+      ],
+      "references": [
+        {
+          "title": "vault operator raft",
+          "url": "https://developer.hashicorp.com/vault/docs/commands/operator/raft"
+        },
+        {
+          "title": "Source: hashicorp/raft/raft.go",
+          "url": "https://github.com/hashicorp/raft/blob/main/raft.go"
+        }
+      ],
+      "examples": [
+        "[WARN]  storage.raft: rejecting vote request since node is not in configuration: from=10.0.0.14:8201"
+      ],
+      "source": {
+        "repo": "hashicorp/raft",
+        "path": "raft.go",
+        "url": "https://github.com/hashicorp/raft/blob/main/raft.go"
+      }
+    },
+    {
+      "id": "raft-join-failed",
+      "title": "Raft join failed",
+      "subsystem": "raft",
+      "location": "both",
+      "patterns": [
+        "failed to (retry )?join raft cluster",
+        "error in retry_join stanza",
+        "must provide leader address or auto-join metadata",
+        "failed to create tls config to communicate with leader node",
+        "invalid retry_join config",
+        "too many concurrent raft retry joins"
+      ],
+      "summary": "A node could not join the raft cluster through `retry_join` or `vault operator raft join`.",
+      "internal_causes": [
+        "`leader_api_addr` wrong or uses http where the leader serves https.",
+        "`leader_ca_cert_file` / `leader_tls_servername` do not match the leader's API certificate.",
+        "Node already has raft data from another cluster."
+      ],
+      "external_causes": [
+        "Leader API port 8200 not reachable from the joining node.",
+        "DNS for the leader address does not resolve."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Test the leader API from the joining node",
+          "command": "curl -sv --cacert <leader_ca> https://<leader>:8200/v1/sys/health"
+        },
+        {
+          "step": "Review the retry_join stanza",
+          "command": "grep -A8 retry_join /etc/vault.d/vault.hcl"
+        },
+        {
+          "step": "List raft peers; confirm one leader and that all voters are present",
+          "command": "vault operator raft list-peers"
+        },
+        {
+          "step": "Stream server logs at debug level without a restart",
+          "command": "vault monitor -log-level=debug"
+        }
+      ],
+      "references": [
+        {
+          "title": "Integrated storage (raft) configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/storage/raft"
+        },
+        {
+          "title": "vault operator raft",
+          "url": "https://developer.hashicorp.com/vault/docs/commands/operator/raft"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/raft.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/raft.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] core: failed to retry join raft cluster: retry=2s err=\"failed to create tls config to communicate with leader node \\\"https://vault-0.vault-internal:8200\\\": open /vault/tls/ca.crt: no such file or directory\"",
+        "Error joining the node to the Raft cluster: Error making API request.\n\nCode: 500. Errors:\n\n* failed to join raft cluster: context deadline exceeded"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/raft.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/raft.go"
+      }
+    },
+    {
+      "id": "raft-challenge",
+      "title": "Raft bootstrap challenge failed",
+      "subsystem": "raft",
+      "location": "both",
+      "patterns": [
+        "failed to get raft challenge",
+        "error during raft bootstrap (init )?call",
+        "raft challenge is nil",
+        "too many raft challenges in flight",
+        "error decoding raft bootstrap challenge",
+        "failed to send answer to raft leader node",
+        "could not retrieve raft bootstrap package"
+      ],
+      "summary": "During join the follower must decrypt a challenge from the leader using the shared seal. That exchange failed.",
+      "internal_causes": [
+        "Follower is configured with a different seal or KMS key than the leader.",
+        "Shamir follower was not unsealed with the cluster's unseal keys after join."
+      ],
+      "external_causes": [
+        "Follower cannot reach the leader's API address (load balancer, TLS SNI, firewall).",
+        "Follower cannot reach the KMS to decrypt the challenge."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Compare the seal stanza on leader and follower",
+          "command": "grep -A10 '^seal' /etc/vault.d/vault.hcl"
+        },
+        {
+          "step": "Test the leader API from the follower",
+          "command": "curl -sv https://<leader>:8200/v1/sys/health"
+        },
+        {
+          "step": "For Shamir seals, unseal the follower after it joins",
+          "command": "vault operator unseal"
+        },
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        }
+      ],
+      "references": [
+        {
+          "title": "Integrated storage (raft) configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/storage/raft"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/raft.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/raft.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] core: failed to retry join raft cluster: err=\"failed to get raft challenge: Error making API request.\n\nURL: POST https://vault-0:8200/v1/sys/storage/raft/bootstrap/challenge\nCode: 503\""
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/raft.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/raft.go"
+      }
+    },
+    {
+      "id": "raft-join-seal-state",
+      "title": "Node seal state wrong for raft join",
+      "subsystem": "raft",
+      "location": "internal",
+      "patterns": [
+        "node must be (sealed|unsealed) before joining",
+        "node must be unsealed to bootstrap",
+        "can't perform a seal migration while joining a raft cluster",
+        "incompatible seal types between raft leader"
+      ],
+      "summary": "Raft join requires a specific seal state, or the follower's seal type differs from the leader's.",
+      "internal_causes": [
+        "Joining a node that is already unsealed against other storage.",
+        "Follower uses Shamir while the leader uses auto-unseal (or the reverse)."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        },
+        {
+          "step": "Review the seal / storage / listener stanzas in the server config",
+          "command": "cat /etc/vault.d/vault.hcl"
+        },
+        {
+          "step": "Align the seal stanza with the leader, wipe the follower's raft dir, restart and rejoin"
+        }
+      ],
+      "references": [
+        {
+          "title": "Integrated storage (raft) configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/storage/raft"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/raft.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/raft.go"
+        }
+      ],
+      "examples": [
+        "Error joining the node to the Raft cluster: Code: 500. Errors:\n\n* node must be sealed before joining"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/raft.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/raft.go"
+      }
+    },
+    {
+      "id": "raft-node-removed",
+      "title": "Raft node removed / stale data",
+      "subsystem": "raft",
+      "location": "internal",
+      "patterns": [
+        "raft data for this node must be cleaned up before it can be added back",
+        "raft is already initialized",
+        "node has been removed from the HA cluster",
+        "existing raft\\.db detected"
+      ],
+      "summary": "The node's raft directory belongs to an old membership (it was removed), or the node was already initialized.",
+      "internal_causes": [
+        "`vault operator raft remove-peer` was run, then the node was restarted with its old data.",
+        "Re-using a volume from another cluster."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "List raft peers; confirm one leader and that all voters are present",
+          "command": "vault operator raft list-peers"
+        },
+        {
+          "step": "Stop Vault, move the raft data directory away, then start and rejoin",
+          "command": "sudo systemctl stop vault && sudo mv /opt/vault/data /opt/vault/data.bak && sudo systemctl start vault"
+        },
+        {
+          "step": "Rejoin the node",
+          "command": "vault operator raft join https://<leader>:8200"
+        }
+      ],
+      "references": [
+        {
+          "title": "vault operator raft",
+          "url": "https://developer.hashicorp.com/vault/docs/commands/operator/raft"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/raft.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/raft.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] core: node has been removed from the HA cluster. Raft data for this node must be cleaned up before it can be added back"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/raft.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/raft.go"
+      }
+    },
+    {
+      "id": "raft-snapshot-key-mismatch",
+      "title": "Raft snapshot from a different seal",
+      "subsystem": "raft",
+      "location": "internal",
+      "patterns": [
+        "could not verify hash file, possibly the snapshot is using a different (autoseal key|set of unseal keys)",
+        "snapshot-force API to bypass"
+      ],
+      "summary": "The snapshot was taken on a cluster with a different seal/unseal keys, so its integrity hash cannot be checked.",
+      "internal_causes": [
+        "Restoring a snapshot from another cluster (DR test, migration) or from before a rekey."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Confirm where the snapshot came from and which seal it was taken with"
+        },
+        {
+          "step": "If you intend to restore it, use force; the target then needs the source cluster's unseal/recovery keys",
+          "command": "vault operator raft snapshot restore -force backup.snap"
+        },
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        }
+      ],
+      "references": [
+        {
+          "title": "vault operator raft snapshot",
+          "url": "https://developer.hashicorp.com/vault/docs/commands/operator/raft#snapshot"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/logical_system_raft.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/logical_system_raft.go"
+        }
+      ],
+      "examples": [
+        "Error installing the snapshot: Code: 400. Errors:\n\n* could not verify hash file, possibly the snapshot is using a different set of unseal keys; use the snapshot-force API to bypass this check"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/logical_system_raft.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/logical_system_raft.go"
+      }
+    },
+    {
+      "id": "raft-snapshot-io",
+      "title": "Raft snapshot install / write failure",
+      "subsystem": "raft",
+      "location": "external",
+      "patterns": [
+        "failed to (install|make|reap|scan) snapshot",
+        "failed to move snapshot into place",
+        "snapshot path not accessible",
+        "incomplete snapshot",
+        "raft snapshot restore failed",
+        "no snapshot data",
+        "unsupported snapshot version"
+      ],
+      "summary": "Raft could not create, move or install a snapshot on local disk.",
+      "internal_causes": [
+        "Corrupt or truncated snapshot file supplied to restore."
+      ],
+      "external_causes": [
+        "Disk full or slow on the raft data volume.",
+        "Wrong ownership/permissions on the snapshots directory.",
+        "Read-only filesystem or SELinux/AppArmor denial."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Check free space and inodes",
+          "command": "df -h /opt/vault/data && df -i /opt/vault/data"
+        },
+        {
+          "step": "Check ownership of the raft directory",
+          "command": "ls -la /opt/vault/data /opt/vault/data/raft/snapshots"
+        },
+        {
+          "step": "Look for kernel or filesystem errors",
+          "command": "dmesg | tail -50"
+        },
+        {
+          "step": "List raft peers; confirm one leader and that all voters are present",
+          "command": "vault operator raft list-peers"
+        }
+      ],
+      "references": [
+        {
+          "title": "Integrated storage (raft) configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/storage/raft"
+        },
+        {
+          "title": "Source: hashicorp/vault/physical/raft/snapshot.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/physical/raft/snapshot.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] storage.raft: failed to install snapshot: error=\"failed to move snapshot into place: rename: no space left on device\""
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "physical/raft/snapshot.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/physical/raft/snapshot.go"
+      }
+    },
+    {
+      "id": "raft-peers-json-recovery",
+      "title": "Raft peers.json recovery failed",
+      "subsystem": "raft",
+      "location": "internal",
+      "patterns": [
+        "raft recovery failed",
+        "recovering raft cluster failed",
+        "raft recovery failed to parse peers\\.json"
+      ],
+      "summary": "Vault found a `raft/peers.json` file at startup but could not use it for manual recovery.",
+      "internal_causes": [
+        "Malformed JSON, wrong node IDs or addresses in peers.json.",
+        "peers.json copied to only some nodes."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Validate the file",
+          "command": "jq . /opt/vault/data/raft/peers.json"
+        },
+        {
+          "step": "Confirm each id matches the node_id and each address is the cluster address (host:8201)"
+        },
+        {
+          "step": "Place an identical peers.json on every surviving node, then restart them"
+        }
+      ],
+      "references": [
+        {
+          "title": "Recover from lost quorum",
+          "url": "https://developer.hashicorp.com/vault/tutorials/raft/raft-lost-quorum"
+        },
+        {
+          "title": "Source: hashicorp/vault/physical/raft/raft.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/physical/raft/raft.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] core: raft recovery failed to parse peers.json: invalid character '}' looking for beginning of object key string"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "physical/raft/raft.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/physical/raft/raft.go"
+      }
+    },
+    {
+      "id": "raft-max-entry-size",
+      "title": "Raft entry too large",
+      "subsystem": "raft",
+      "location": "internal",
+      "patterns": [
+        "retrieved entry value is too large",
+        "max_entry_size",
+        "max_mount_and_namespace_table_entry_size",
+        "put failed due to value being too large"
+      ],
+      "summary": "A storage entry exceeds raft `max_entry_size` (default 1 MiB), often the mount table or a large KV secret.",
+      "internal_causes": [
+        "Very many mounts/namespaces make the mount table too large.",
+        "Clients write very large KV values.",
+        "max_entry_size was lowered after data was written."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Check the configured limits in the raft stanza",
+          "command": "grep -E 'max_entry_size|max_mount' /etc/vault.d/vault.hcl"
+        },
+        {
+          "step": "Find the large writes in the audit log"
+        },
+        {
+          "step": "Raise max_entry_size on all nodes consistently, or reduce payload size"
+        }
+      ],
+      "references": [
+        {
+          "title": "Integrated storage (raft) configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/storage/raft"
+        },
+        {
+          "title": "Source: hashicorp/vault/physical/raft/raft.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/physical/raft/raft.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] core: retrieved entry value is too large, has raft's max_entry_size or max_mount_and_namespace_table_entry_size been reduced?"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "physical/raft/raft.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/physical/raft/raft.go"
+      }
+    },
+    {
+      "id": "raft-fsm-permissions",
+      "title": "Raft FSM / data file problems",
+      "subsystem": "raft",
+      "location": "external",
+      "patterns": [
+        "raft FSM db file has wider permissions than needed",
+        "error checking raft FSM db file",
+        "failed to check if raft\\.db already exists",
+        "MAP_POPULATE mmap flag has not been set"
+      ],
+      "summary": "Vault found unexpected permissions, size or access problems on the raft vault.db / raft.db files.",
+      "internal_causes": [],
+      "external_causes": [
+        "Data files owned by root or world-readable after manual copy/restore.",
+        "Database larger than available memory (slow startup)."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Check file modes and owner",
+          "command": "ls -la /opt/vault/data /opt/vault/data/raft"
+        },
+        {
+          "step": "Fix ownership and modes",
+          "command": "sudo chown -R vault:vault /opt/vault/data && sudo chmod 600 /opt/vault/data/vault.db"
+        },
+        {
+          "step": "Check memory against database size",
+          "command": "free -h && du -sh /opt/vault/data"
+        }
+      ],
+      "references": [
+        {
+          "title": "Integrated storage (raft) configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/storage/raft"
+        },
+        {
+          "title": "Source: hashicorp/vault/physical/raft/fsm.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/physical/raft/fsm.go"
+        }
+      ],
+      "examples": [
+        "[WARN]  storage.raft.fsm: raft FSM db file has wider permissions than needed: needed=-rw------- existing=-rw-r--r--"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "physical/raft/fsm.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/physical/raft/fsm.go"
+      }
+    },
+    {
+      "id": "raft-not-ready",
+      "title": "Raft storage not initialized / shut down",
+      "subsystem": "raft",
+      "location": "internal",
+      "patterns": [
+        "raft storage is not initialized",
+        "raft storage is not in use",
+        "raft backend (is )?not in use",
+        "raft is shutdown",
+        "raft storage autopilot is not initialized",
+        "could not check raft state"
+      ],
+      "summary": "A raft operation was called while raft is not running on this node, or the cluster uses a different storage backend.",
+      "internal_causes": [
+        "Running `vault operator raft` commands against a Consul-backed cluster.",
+        "Node is still starting, sealed or not yet joined."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        },
+        {
+          "step": "Confirm storage type (Storage Type line)",
+          "command": "vault status | grep -i storage"
+        },
+        {
+          "step": "List raft peers; confirm one leader and that all voters are present",
+          "command": "vault operator raft list-peers"
+        }
+      ],
+      "references": [
+        {
+          "title": "vault operator raft",
+          "url": "https://developer.hashicorp.com/vault/docs/commands/operator/raft"
+        },
+        {
+          "title": "Source: hashicorp/vault/physical/raft/raft.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/physical/raft/raft.go"
+        }
+      ],
+      "examples": [
+        "Error reading the raft cluster configuration: Code: 500. Errors:\n\n* raft storage is not initialized"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "physical/raft/raft.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/physical/raft/raft.go"
+      }
+    },
+    {
+      "id": "raft-unspecified-ip",
+      "title": "Raft cluster_addr is unspecified",
+      "subsystem": "raft",
+      "location": "internal",
+      "patterns": [
+        "cannot use unspecified IP with raft storage",
+        "no raft addr found"
+      ],
+      "summary": "`cluster_addr` resolves to 0.0.0.0 or `::`, which peers cannot dial.",
+      "internal_causes": [
+        "cluster_addr set to 0.0.0.0, or derived from a listener bound to all interfaces."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Set cluster_addr to a routable address on every node",
+          "command": "grep cluster_addr /etc/vault.d/vault.hcl"
+        },
+        {
+          "step": "Restart and verify",
+          "command": "vault operator raft list-peers"
+        }
+      ],
+      "references": [
+        {
+          "title": "Integrated storage (raft) configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/storage/raft"
+        },
+        {
+          "title": "cluster_addr parameter",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration#cluster_addr"
+        },
+        {
+          "title": "Source: hashicorp/vault/physical/raft/streamlayer.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/physical/raft/streamlayer.go"
+        }
+      ],
+      "examples": [
+        "Error initializing storage of type raft: cannot use unspecified IP with raft storage: 0.0.0.0:8201"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "physical/raft/streamlayer.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/physical/raft/streamlayer.go"
+      }
+    },
+    {
+      "id": "raft-tls-keyring",
+      "title": "Raft TLS keyring problems",
+      "subsystem": "raft",
+      "location": "internal",
+      "patterns": [
+        "could not find raft TLS configuration",
+        "could not decode raft TLS configuration",
+        "failed to read raft TLS keyring",
+        "no active raft TLS key found",
+        "got raft connection but no local cert",
+        "raft tls periodic upgrade check failed"
+      ],
+      "summary": "Vault manages its own mTLS keyring for raft cluster traffic, and it could not load or rotate it.",
+      "internal_causes": [
+        "Node not fully unsealed when raft traffic arrived.",
+        "Keyring storage entry damaged after partial restore."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        },
+        {
+          "step": "List raft peers; confirm one leader and that all voters are present",
+          "command": "vault operator raft list-peers"
+        },
+        {
+          "step": "Stream server logs at debug level without a restart",
+          "command": "vault monitor -log-level=debug"
+        }
+      ],
+      "references": [
+        {
+          "title": "Integrated storage concepts",
+          "url": "https://developer.hashicorp.com/vault/docs/internals/integrated-storage"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/raft.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/raft.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] storage.raft: no active raft TLS key found"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/raft.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/raft.go"
+      }
+    },
+    {
+      "id": "raft-autojoin-discovery",
+      "title": "Raft cloud auto-join discovery failed",
+      "subsystem": "raft",
+      "location": "external",
+      "patterns": [
+        "failed to create auto-join discovery",
+        "failed to parse addresses from auto-join metadata",
+        "auto_join.*(AccessDenied|UnauthorizedOperation|not authorized)"
+      ],
+      "summary": "`retry_join { auto_join = \"provider=...\" }` could not list peers through the cloud provider API.",
+      "internal_causes": [
+        "Malformed auto_join string (provider, tag_key, tag_value, region)."
+      ],
+      "external_causes": [
+        "IAM role lacks ec2:DescribeInstances (AWS) or the equivalent on Azure/GCP.",
+        "Instances do not carry the expected tags.",
+        "No route to the cloud metadata or API endpoint."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Review the auto_join string",
+          "command": "grep auto_join /etc/vault.d/vault.hcl"
+        },
+        {
+          "step": "From the Vault host, confirm which IAM identity Vault is using",
+          "command": "aws sts get-caller-identity"
+        },
+        {
+          "step": "Confirm instances are discoverable by tag",
+          "command": "aws ec2 describe-instances --filters Name=tag:<tag_key>,Values=<tag_value> --query 'Reservations[].Instances[].PrivateIpAddress'"
+        }
+      ],
+      "references": [
+        {
+          "title": "Integrated storage (raft) configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/storage/raft"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/raft.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/raft.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] core: failed to retry join raft cluster: error=\"failed to parse addresses from auto-join metadata: discover-aws: DescribeInstances failed: UnauthorizedOperation\""
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/raft.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/raft.go"
+      }
+    },
+    {
+      "id": "storage-consul-lock-lost",
+      "title": "Consul session / HA lock lost",
+      "subsystem": "storage",
+      "location": "external",
+      "patterns": [
+        "failed to renew consul session for more than the TTL, lock lost",
+        "session check failed on write, we lost active node lock",
+        "consul.*(lock lost|session invalidated)"
+      ],
+      "summary": "The active node lost its Consul lock, stepped down, and a standby took over (leadership flapping if repeated).",
+      "internal_causes": [
+        "`session_ttl` / `lock_wait_time` too aggressive for the environment."
+      ],
+      "external_causes": [
+        "Consul agent on the Vault host unhealthy or restarting.",
+        "Consul servers lost leader or are overloaded.",
+        "Network latency between Vault, the agent and the Consul servers."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Check the local Consul agent and cluster members",
+          "command": "consul members"
+        },
+        {
+          "step": "Check Consul raft health",
+          "command": "consul operator raft list-peers"
+        },
+        {
+          "step": "Look for session invalidations in the Consul agent logs",
+          "command": "journalctl -u consul --since '-30 min' | grep -i session"
+        },
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        }
+      ],
+      "references": [
+        {
+          "title": "Consul storage backend",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/storage/consul"
+        },
+        {
+          "title": "Source: hashicorp/vault/physical/consul/consul.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/physical/consul/consul.go"
+        }
+      ],
+      "examples": [
+        "[WARN]  storage.consul: session check failed on write, we lost active node lock, stepping down"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "physical/consul/consul.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/physical/consul/consul.go"
+      }
+    },
+    {
+      "id": "storage-consul-access",
+      "title": "Consul storage access/ACL error",
+      "subsystem": "storage",
+      "location": "external",
+      "patterns": [
+        "Unexpected response code: 403",
+        "ACL not found",
+        "rpc error making call: Permission denied",
+        "key or cert path: .* cannot be loaded from consul config file",
+        "storage\\.consul.*(connection refused|i/o timeout|no such host)",
+        "invalid consistency_mode value"
+      ],
+      "summary": "Vault could not read or write its Consul KV prefix.",
+      "internal_causes": [
+        "Wrong `address`, `scheme`, `path` or TLS files in the consul storage stanza."
+      ],
+      "external_causes": [
+        "Consul ACL token missing, expired or lacking key_prefix/session write.",
+        "Consul agent not listening on the configured address.",
+        "Consul TLS/mTLS required but not configured."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Test the token against Consul directly",
+          "command": "CONSUL_HTTP_TOKEN=<token> consul kv get -recurse vault/ | head"
+        },
+        {
+          "step": "Inspect the ACL token's policies",
+          "command": "consul acl token read -self"
+        },
+        {
+          "step": "Confirm agent reachability",
+          "command": "curl -sv http://127.0.0.1:8500/v1/status/leader"
+        }
+      ],
+      "references": [
+        {
+          "title": "Consul storage backend",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/storage/consul"
+        },
+        {
+          "title": "Source: hashicorp/vault/physical/consul/consul.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/physical/consul/consul.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] core: failed to check for initialization: error=\"Unexpected response code: 403 (ACL not found)\""
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "physical/consul/consul.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/physical/consul/consul.go"
+      }
+    },
+    {
+      "id": "storage-etcd",
+      "title": "etcd storage error",
+      "subsystem": "storage",
+      "location": "external",
+      "patterns": [
+        "failed to discover etcd endpoints through SRV discovery",
+        "etcd: unknown API version",
+        "etcdserver: (request timed out|mvcc: database space exceeded|leader changed|no leader)",
+        "storage\\.etcd.*context deadline exceeded"
+      ],
+      "summary": "Vault's etcd backend could not reach etcd, or etcd rejected the request.",
+      "internal_causes": [
+        "Wrong `address` / `etcd_api` / TLS settings in the storage stanza."
+      ],
+      "external_causes": [
+        "etcd quota exceeded (needs compaction and defrag).",
+        "etcd cluster lost leader or is slow (disk fsync).",
+        "Network or TLS problems to the etcd endpoints."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Check etcd endpoint health",
+          "command": "etcdctl --endpoints=<endpoints> endpoint health"
+        },
+        {
+          "step": "Check status, DB size and alarms",
+          "command": "etcdctl --endpoints=<endpoints> endpoint status -w table && etcdctl alarm list"
+        }
+      ],
+      "references": [
+        {
+          "title": "etcd storage backend",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/storage/etcd"
+        },
+        {
+          "title": "Source: hashicorp/vault/physical/etcd/etcd.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/physical/etcd/etcd.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] core: error=\"etcdserver: mvcc: database space exceeded\""
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "physical/etcd/etcd.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/physical/etcd/etcd.go"
+      }
+    },
+    {
+      "id": "storage-dynamodb",
+      "title": "DynamoDB storage error",
+      "subsystem": "storage",
+      "location": "external",
+      "patterns": [
+        "ProvisionedThroughputExceededException",
+        "dynamodb: timeout handling UnproccessedItems",
+        "Could not establish AWS configuration",
+        "ResourceNotFoundException.*(table|Table)",
+        "dynamodb.*AccessDeniedException",
+        "error renewing leadership lock"
+      ],
+      "summary": "Vault's DynamoDB backend was throttled, denied, or could not find its table.",
+      "internal_causes": [
+        "Wrong `table`, `region` or `endpoint`; ha_enabled without suitable settings."
+      ],
+      "external_causes": [
+        "Table capacity too low (provisioned mode) causing throttling.",
+        "IAM policy missing dynamodb:GetItem/PutItem/DeleteItem/Query/DescribeTable on the table.",
+        "Credentials not available (no instance profile / env)."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "From the Vault host, confirm which IAM identity Vault is using",
+          "command": "aws sts get-caller-identity"
+        },
+        {
+          "step": "Describe the table and capacity",
+          "command": "aws dynamodb describe-table --table-name <table> --region <region>"
+        },
+        {
+          "step": "Check ThrottledRequests and ConsumedWriteCapacity metrics in CloudWatch for the table"
+        }
+      ],
+      "references": [
+        {
+          "title": "DynamoDB storage backend",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/storage/dynamodb"
+        },
+        {
+          "title": "Source: hashicorp/vault/physical/dynamodb/dynamodb.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/physical/dynamodb/dynamodb.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] core: error=\"ProvisionedThroughputExceededException: The level of configured provisioned throughput for the table was exceeded\""
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "physical/dynamodb/dynamodb.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/physical/dynamodb/dynamodb.go"
+      }
+    },
+    {
+      "id": "storage-s3",
+      "title": "S3 storage error",
+      "subsystem": "storage",
+      "location": "external",
+      "patterns": [
+        "unable to access bucket .* in region",
+        "'bucket' must be set",
+        "NoSuchBucket",
+        "got nil response from S3",
+        "s3.*AccessDenied"
+      ],
+      "summary": "Vault could not access the configured S3 bucket.",
+      "internal_causes": [
+        "Wrong `bucket`, `region` or `endpoint` (S3-compatible stores).",
+        "`s3_force_path_style` needed for MinIO-type endpoints."
+      ],
+      "external_causes": [
+        "IAM/bucket policy lacks s3:ListBucket, s3:GetObject, s3:PutObject, s3:DeleteObject.",
+        "Bucket in another region, or blocked by VPC endpoint policy or SCP."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "From the Vault host, confirm which IAM identity Vault is using",
+          "command": "aws sts get-caller-identity"
+        },
+        {
+          "step": "List the bucket with Vault's credentials",
+          "command": "aws s3 ls s3://<bucket>/ --region <region>"
+        },
+        {
+          "step": "Review the bucket policy",
+          "command": "aws s3api get-bucket-policy --bucket <bucket>"
+        }
+      ],
+      "references": [
+        {
+          "title": "S3 storage backend",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/storage/s3"
+        },
+        {
+          "title": "Source: hashicorp/vault/physical/alicloudoss/alicloudoss.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/physical/alicloudoss/alicloudoss.go"
+        }
+      ],
+      "examples": [
+        "Error initializing storage of type s3: unable to access bucket \"vault-data\" in region \"us-east-1\": AccessDenied: Access Denied"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "physical/alicloudoss/alicloudoss.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/physical/alicloudoss/alicloudoss.go"
+      }
+    },
+    {
+      "id": "storage-postgresql",
+      "title": "PostgreSQL storage error",
+      "subsystem": "storage",
+      "location": "external",
+      "patterns": [
+        "failed to connect to postgres",
+        "missing connection_url",
+        "PG version doesn't support HA",
+        "pq: password authentication failed",
+        "pq: relation \\\"vault_[a-z_]+\\\" does not exist",
+        "pq: permission denied for (table|relation)"
+      ],
+      "summary": "Vault's PostgreSQL backend could not connect, authenticate, or find its tables.",
+      "internal_causes": [
+        "`connection_url`, `table` or `ha_table` wrong in the storage stanza."
+      ],
+      "external_causes": [
+        "DB credentials rotated or wrong.",
+        "Tables vault_kv_store / vault_ha_locks not created (Vault does not create them).",
+        "pg_hba.conf, network or TLS (sslmode) blocking the connection."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Connect with the same URL from the Vault host",
+          "command": "psql '<connection_url>' -c '\\dt vault*'"
+        },
+        {
+          "step": "Create the required tables if missing (see the PostgreSQL storage docs)"
+        }
+      ],
+      "references": [
+        {
+          "title": "PostgreSQL storage backend",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/storage/postgresql"
+        },
+        {
+          "title": "Source: hashicorp/vault/physical/postgresql/postgresql.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/physical/postgresql/postgresql.go"
+        }
+      ],
+      "examples": [
+        "Error initializing storage of type postgresql: failed to connect to postgres: pq: password authentication failed for user \"vault\""
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "physical/postgresql/postgresql.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/physical/postgresql/postgresql.go"
+      }
+    },
+    {
+      "id": "storage-mysql",
+      "title": "MySQL storage error",
+      "subsystem": "storage",
+      "location": "external",
+      "patterns": [
+        "failed to connect to mysql",
+        "mysql: (unable to update DB with new leader information|getting global lock id failed|lock already held)",
+        "Error 1045",
+        "Access denied for user",
+        "failed to (create|check) mysql (database|table)"
+      ],
+      "summary": "Vault's MySQL backend could not connect, create its schema, or take the HA lock.",
+      "internal_causes": [
+        "Wrong `address`, `database`, `table` or TLS (`tls_ca_file`) settings."
+      ],
+      "external_causes": [
+        "Invalid credentials or missing grants (CREATE, SELECT, INSERT, UPDATE, DELETE).",
+        "Network or TLS problem to the MySQL server."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Connect from the Vault host",
+          "command": "mysql -h <address> -u <username> -p -e 'SHOW GRANTS'"
+        },
+        {
+          "step": "Review the seal / storage / listener stanzas in the server config",
+          "command": "cat /etc/vault.d/vault.hcl"
+        }
+      ],
+      "references": [
+        {
+          "title": "MySQL storage backend",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/storage/mysql"
+        },
+        {
+          "title": "Source: hashicorp/vault/physical/mysql/mysql.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/physical/mysql/mysql.go"
+        }
+      ],
+      "examples": [
+        "Error initializing storage of type mysql: failed to connect to mysql: Error 1045: Access denied for user 'vault'@'10.0.0.5'"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "physical/mysql/mysql.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/physical/mysql/mysql.go"
+      }
+    },
+    {
+      "id": "storage-gcs",
+      "title": "Google Cloud Storage backend error",
+      "subsystem": "storage",
+      "location": "external",
+      "patterns": [
+        "failed to create (HA )?storage client",
+        "missing bucket name",
+        "googleapi: Error 403",
+        "failed to (put data|read object|delete key)"
+      ],
+      "summary": "Vault's GCS backend could not create a client or access the bucket.",
+      "internal_causes": [
+        "Wrong bucket name or missing HA settings."
+      ],
+      "external_causes": [
+        "Service account lacks storage.objects.* on the bucket.",
+        "Credentials file not readable by the vault user."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "List the bucket with Vault's identity",
+          "command": "gsutil ls gs://<bucket>"
+        },
+        {
+          "step": "Check bucket IAM",
+          "command": "gsutil iam get gs://<bucket>"
+        }
+      ],
+      "references": [
+        {
+          "title": "Google Cloud Storage storage backend",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/storage/google-cloud-storage"
+        },
+        {
+          "title": "Source: hashicorp/vault/physical/gcs/gcs.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/physical/gcs/gcs.go"
+        }
+      ],
+      "examples": [
+        "Error initializing storage of type gcs: failed to create storage client: dialing: google: could not find default credentials"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "physical/gcs/gcs.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/physical/gcs/gcs.go"
+      }
+    },
+    {
+      "id": "storage-azure",
+      "title": "Azure storage backend error",
+      "subsystem": "storage",
+      "location": "external",
+      "patterns": [
+        "failed to create Azure client",
+        "failed to (get properties for|create) .*container",
+        "couldn't refresh token credential",
+        "failed to obtain auth token from IMDS"
+      ],
+      "summary": "Vault's Azure Blob storage backend could not authenticate or access the container.",
+      "internal_causes": [
+        "Wrong accountName/container/environment in the storage stanza."
+      ],
+      "external_causes": [
+        "Managed identity not assigned or lacks Storage Blob Data Contributor.",
+        "Storage account firewall blocks the Vault host.",
+        "IMDS unreachable from the container."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Check access with Vault's identity",
+          "command": "az storage container show --account-name <accountName> --name <container> --auth-mode login"
+        },
+        {
+          "step": "Check IMDS from the host",
+          "command": "curl -s -H Metadata:true 'http://169.254.169.254/metadata/instance?api-version=2021-02-01'"
+        }
+      ],
+      "references": [
+        {
+          "title": "Azure storage backend",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/storage/azure"
+        },
+        {
+          "title": "Source: hashicorp/vault/physical/azure/azure.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/physical/azure/azure.go"
+        }
+      ],
+      "examples": [
+        "Error initializing storage of type azure: failed to get properties for container \"vault\": StatusCode=403"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "physical/azure/azure.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/physical/azure/azure.go"
+      }
+    },
+    {
+      "id": "storage-readonly",
+      "title": "Cannot write to read-only storage",
+      "subsystem": "storage",
+      "location": "internal",
+      "patterns": [
+        "cannot write to readonly storage"
+      ],
+      "summary": "A write reached a read-only storage view, for example on a performance secondary, a DR secondary or during recovery mode.",
+      "internal_causes": [
+        "Writing to a replicated mount on a performance secondary that is not forwarded.",
+        "Node in recovery mode."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        },
+        {
+          "step": "Check replication mode of this cluster",
+          "command": "vault read -format=json sys/replication/status | jq '.data | {dr: .dr.mode, perf: .performance.mode}'"
+        },
+        {
+          "step": "Send the write to the primary, or mark the mount local if intended"
+        }
+      ],
+      "references": [
+        {
+          "title": "Vault Enterprise replication",
+          "url": "https://developer.hashicorp.com/vault/docs/enterprise/replication"
+        },
+        {
+          "title": "Source: hashicorp/vault/sdk/logical/storage.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/sdk/logical/storage.go"
+        }
+      ],
+      "examples": [
+        "Error writing data to secret/foo: Code: 500. Errors:\n\n* cannot write to readonly storage"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "sdk/logical/storage.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/sdk/logical/storage.go"
+      }
+    },
+    {
+      "id": "storage-ha-lock",
+      "title": "HA lock acquisition failure",
+      "subsystem": "storage",
+      "location": "both",
+      "patterns": [
+        "failed to acquire lock",
+        "lock already held",
+        "lock not held",
+        "error renewing leadership lock",
+        "attempt lock: "
+      ],
+      "summary": "The node could not acquire or keep the HA lock in the storage/HA backend, so it stays standby or steps down.",
+      "internal_causes": [
+        "Two clusters pointed at the same storage path.",
+        "Clock skew affecting lock TTLs."
+      ],
+      "external_causes": [
+        "Storage/HA backend slow or unavailable (Consul, etcd, DynamoDB, ZooKeeper, DB).",
+        "Network latency to the HA backend."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        },
+        {
+          "step": "Query the health endpoint on every node (200 active, 429 standby, 473 perf standby, 501 uninitialized, 503 sealed)",
+          "command": "curl -s $VAULT_ADDR/v1/sys/health | jq"
+        },
+        {
+          "step": "Check the HA backend health with its own tooling (consul members, etcdctl endpoint health, ...)"
+        },
+        {
+          "step": "Stream server logs at debug level without a restart",
+          "command": "vault monitor -log-level=debug"
+        }
+      ],
+      "references": [
+        {
+          "title": "High availability mode",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/ha"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/ha.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/ha.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] core: failed to acquire lock: error=\"context deadline exceeded\""
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/ha.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/ha.go"
+      }
+    },
+    {
+      "id": "storage-latency-timeout",
+      "title": "Storage request timed out",
+      "subsystem": "storage",
+      "location": "both",
+      "patterns": [
+        "(physical|storage)[^ ]*.*context deadline exceeded",
+        "failed to persist keyring: context deadline exceeded",
+        "error checking (health|initialization).*context deadline exceeded"
+      ],
+      "summary": "A storage operation did not finish before its context deadline. Vault is waiting on the storage layer.",
+      "internal_causes": [
+        "Very large lease counts or mount tables slow down startup/unseal.",
+        "Raft leader overloaded."
+      ],
+      "external_causes": [
+        "Storage backend latency (disk fsync, network, throttling).",
+        "Network partition to the backend."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        },
+        {
+          "step": "Check storage latency metrics (vault.<backend>.get/put)",
+          "command": "curl -s -H \"X-Vault-Token: $VAULT_TOKEN\" $VAULT_ADDR/v1/sys/metrics | jq '.Samples[] | select(.Name|test(\"(raft-storage|consul|dynamodb|postgres).*(get|put)\"))'"
+        },
+        {
+          "step": "Check disk latency on raft nodes",
+          "command": "iostat -x 1 5"
+        },
+        {
+          "step": "Stream server logs at debug level without a restart",
+          "command": "vault monitor -log-level=debug"
+        }
+      ],
+      "references": [
+        {
+          "title": "Server configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration"
+        }
+      ],
+      "examples": [
+        "[ERROR] core: failed to persist keyring: context deadline exceeded"
+      ],
+      "source": {
+        "repo": null,
+        "note": "Go context deadline surfaced by the storage backend client"
+      }
+    },
+    {
+      "id": "tls-unknown-authority",
+      "title": "x509: certificate signed by unknown authority",
+      "subsystem": "tls",
+      "location": "external",
+      "patterns": [
+        "x509: certificate signed by unknown authority",
+        "tls: failed to verify certificate"
+      ],
+      "summary": "The client (CLI, agent, app, peer node or plugin) does not trust the CA that signed Vault's (or the remote service's) certificate.",
+      "internal_causes": [
+        "`VAULT_CACERT` / `ca_cert` / `leader_ca_cert_file` not set."
+      ],
+      "external_causes": [
+        "Private CA not in the system trust store.",
+        "TLS-intercepting proxy or load balancer presents its own certificate.",
+        "Intermediate certificate missing from the server chain."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Inspect the chain the server actually presents",
+          "command": "openssl s_client -connect <host>:8200 -showcerts </dev/null"
+        },
+        {
+          "step": "Point the client at the CA bundle",
+          "command": "export VAULT_CACERT=/etc/vault.d/ca.pem"
+        },
+        {
+          "step": "Verify the server cert against the CA",
+          "command": "openssl verify -CAfile ca.pem server.pem"
+        }
+      ],
+      "references": [
+        {
+          "title": "TCP listener configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/listener/tcp"
+        },
+        {
+          "title": "VAULT_CACERT environment variable",
+          "url": "https://developer.hashicorp.com/vault/docs/commands#vault_cacert"
+        }
+      ],
+      "examples": [
+        "Error checking seal status: Get \"https://vault.example.com:8200/v1/sys/seal-status\": tls: failed to verify certificate: x509: certificate signed by unknown authority"
+      ],
+      "source": {
+        "repo": null,
+        "note": "Go crypto/x509 (client side)"
+      }
+    },
+    {
+      "id": "tls-hostname-mismatch",
+      "title": "x509: certificate name mismatch",
+      "subsystem": "tls",
+      "location": "external",
+      "patterns": [
+        "x509: certificate is valid for .*, not ",
+        "doesn't contain any IP SANs",
+        "x509: certificate is not valid for any names"
+      ],
+      "summary": "The certificate's SANs do not include the hostname or IP the client used.",
+      "internal_causes": [
+        "`api_addr` / `leader_api_addr` / `leader_tls_servername` use a name not in the cert."
+      ],
+      "external_causes": [
+        "Certificate issued without the load balancer DNS name or node IPs.",
+        "Client connects by IP while the cert has only DNS SANs."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "List SANs on the served certificate",
+          "command": "openssl s_client -connect <host>:8200 </dev/null 2>/dev/null | openssl x509 -noout -ext subjectAltName"
+        },
+        {
+          "step": "Use a matching hostname, set VAULT_TLS_SERVER_NAME, or reissue the cert with the right SANs"
+        }
+      ],
+      "references": [
+        {
+          "title": "TCP listener configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/listener/tcp"
+        }
+      ],
+      "examples": [
+        "Error making API request: Get \"https://10.0.0.11:8200/v1/sys/health\": x509: cannot validate certificate for 10.0.0.11 because it doesn't contain any IP SANs"
+      ],
+      "source": {
+        "repo": null,
+        "note": "Go crypto/x509 (client side)"
+      }
+    },
+    {
+      "id": "tls-cert-expired",
+      "title": "x509: certificate expired",
+      "subsystem": "tls",
+      "location": "external",
+      "patterns": [
+        "x509: certificate has expired or is not yet valid",
+        "certificate has expired"
+      ],
+      "summary": "A certificate in the chain is expired or not yet valid. Check the system clock too.",
+      "internal_causes": [],
+      "external_causes": [
+        "Listener cert or intermediate expired.",
+        "System clock skew on client or server (NTP).",
+        "Upstream service (KMS proxy, LDAP, DB) cert expired."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Check validity dates",
+          "command": "openssl s_client -connect <host>:8200 </dev/null 2>/dev/null | openssl x509 -noout -dates"
+        },
+        {
+          "step": "Check clock sync",
+          "command": "timedatectl status"
+        },
+        {
+          "step": "Replace the cert and reload the listener without restart",
+          "command": "kill -HUP $(pidof vault)"
+        }
+      ],
+      "references": [
+        {
+          "title": "TCP listener configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/listener/tcp"
+        }
+      ],
+      "examples": [
+        "[ERROR] core: error=\"x509: certificate has expired or is not yet valid: current time 2024-05-01T10:00:00Z is after 2024-04-30T00:00:00Z\""
+      ],
+      "source": {
+        "repo": null,
+        "note": "Go crypto/x509 (client side)"
+      }
+    },
+    {
+      "id": "tls-http-https-mismatch",
+      "title": "HTTP/HTTPS scheme mismatch",
+      "subsystem": "tls",
+      "location": "external",
+      "patterns": [
+        "server gave HTTP response to HTTPS client",
+        "client sent an HTTP request to an HTTPS server"
+      ],
+      "summary": "Client and server disagree on TLS: one side uses http:// and the other https://.",
+      "internal_causes": [
+        "Listener has `tls_disable = true` while VAULT_ADDR uses https (or the reverse).",
+        "`api_addr` / `leader_api_addr` uses the wrong scheme."
+      ],
+      "external_causes": [
+        "Load balancer terminates TLS and forwards plain HTTP (or the reverse)."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Check VAULT_ADDR scheme",
+          "command": "echo $VAULT_ADDR"
+        },
+        {
+          "step": "Check the listener's tls_disable",
+          "command": "grep -A6 'listener' /etc/vault.d/vault.hcl"
+        },
+        {
+          "step": "Test both schemes",
+          "command": "curl -sv http://<host>:8200/v1/sys/health; curl -skv https://<host>:8200/v1/sys/health"
+        }
+      ],
+      "references": [
+        {
+          "title": "TCP listener configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/listener/tcp"
+        }
+      ],
+      "examples": [
+        "Error checking seal status: Get \"https://127.0.0.1:8200/v1/sys/seal-status\": http: server gave HTTP response to HTTPS client"
+      ],
+      "source": {
+        "repo": null,
+        "note": "Go net/http"
+      }
+    },
+    {
+      "id": "tls-handshake",
+      "title": "TLS handshake failure",
+      "subsystem": "tls",
+      "location": "both",
+      "patterns": [
+        "TLS handshake error from",
+        "remote error: tls: (bad certificate|unknown certificate authority|handshake failure|protocol version)",
+        "tls: handshake failure",
+        "tls: no cipher suite supported"
+      ],
+      "summary": "A TLS handshake to the listener failed: client cert required, version/cipher mismatch, or an untrusted client.",
+      "internal_causes": [
+        "`tls_require_and_verify_client_cert` enabled but clients send no cert.",
+        "`tls_min_version` / `tls_cipher_suites` too strict for the clients."
+      ],
+      "external_causes": [
+        "Load balancer health checks over plain TCP/HTTP (noisy but harmless).",
+        "Old client TLS stack."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Identify the source IPs in the log lines (LB health checks are common)"
+        },
+        {
+          "step": "Test the handshake and negotiated protocol",
+          "command": "openssl s_client -connect <host>:8200 -tls1_2 </dev/null"
+        },
+        {
+          "step": "Review listener TLS options",
+          "command": "grep -E 'tls_' /etc/vault.d/vault.hcl"
+        }
+      ],
+      "references": [
+        {
+          "title": "TCP listener configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/listener/tcp"
+        }
+      ],
+      "examples": [
+        "2024-05-01T10:00:00.000Z [INFO]  http: TLS handshake error from 10.0.1.5:51544: remote error: tls: bad certificate"
+      ],
+      "source": {
+        "repo": null,
+        "note": "Go crypto/tls / net/http server"
+      }
+    },
+    {
+      "id": "tls-listener-config",
+      "title": "Listener TLS configuration error",
+      "subsystem": "tls",
+      "location": "internal",
+      "patterns": [
+        "error loading TLS cert",
+        "'tls_(min|max)_version' value .* not supported",
+        "'tls_max_version' must be greater than or equal to 'tls_min_version'",
+        "'tls_disable_client_certs' and 'tls_require_and_verify_client_cert' are mutually exclusive",
+        "failed to (read|parse CA certificate in) tls_client_ca_file",
+        "invalid value for '?tls_cipher_suites'?",
+        "tls: private key does not match public key"
+      ],
+      "summary": "Vault could not build the listener TLS config from the files and options in the listener stanza.",
+      "internal_causes": [
+        "Wrong tls_cert_file / tls_key_file paths, key/cert mismatch, or PEM order (leaf first, then intermediates).",
+        "Invalid or conflicting tls_* options."
+      ],
+      "external_causes": [
+        "Files not readable by the vault user (permissions, SELinux)."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Check that key and cert match",
+          "command": "diff <(openssl x509 -noout -pubkey -in vault.crt) <(openssl pkey -pubout -in vault.key) && echo match"
+        },
+        {
+          "step": "Check file permissions for the vault user",
+          "command": "sudo -u vault cat /etc/vault.d/tls/vault.key >/dev/null && echo readable"
+        },
+        {
+          "step": "Run offline checks of config, listener TLS, storage and seal",
+          "command": "vault operator diagnose -config=/etc/vault.d/vault.hcl"
+        }
+      ],
+      "references": [
+        {
+          "title": "TCP listener configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/listener/tcp"
+        },
+        {
+          "title": "Source: hashicorp/vault/internalshared/listenerutil/listener.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/internalshared/listenerutil/listener.go"
+        }
+      ],
+      "examples": [
+        "Error initializing listener of type tcp: error loading TLS cert: open /etc/vault.d/tls/vault.crt: permission denied"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "internalshared/listenerutil/listener.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/internalshared/listenerutil/listener.go"
+      }
+    },
+    {
+      "id": "ha-active-not-found",
+      "title": "Active node not found",
+      "subsystem": "ha",
+      "location": "both",
+      "patterns": [
+        "local node not active but active cluster node not found",
+        "Vault is not configured for highly-available mode",
+        "Code: 500.*active cluster node not found"
+      ],
+      "summary": "A standby received a request but does not know which node is active, so it cannot forward.",
+      "internal_causes": [
+        "Election in progress or leadership flapping.",
+        "`api_addr` / `cluster_addr` advertise unreachable addresses."
+      ],
+      "external_causes": [
+        "HA/storage backend unhealthy, so no node holds the lock.",
+        "Cluster port 8201 blocked between nodes."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        },
+        {
+          "step": "Query the health endpoint on every node (200 active, 429 standby, 473 perf standby, 501 uninitialized, 503 sealed)",
+          "command": "curl -s $VAULT_ADDR/v1/sys/health | jq"
+        },
+        {
+          "step": "List raft peers; confirm one leader and that all voters are present",
+          "command": "vault operator raft list-peers"
+        },
+        {
+          "step": "Verify API (8200) and cluster (8201) ports are reachable between every pair of nodes",
+          "command": "nc -zv <peer-host> 8200 && nc -zv <peer-host> 8201"
+        },
+        {
+          "step": "Check which node holds leadership",
+          "command": "vault read sys/leader"
+        }
+      ],
+      "references": [
+        {
+          "title": "High availability mode",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/ha"
+        },
+        {
+          "title": "Source: hashicorp/vault/http/handler.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/http/handler.go"
+        }
+      ],
+      "examples": [
+        "Error making API request.\n\nCode: 500. Errors:\n\n* local node not active but active cluster node not found"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "http/handler.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/http/handler.go"
+      }
+    },
+    {
+      "id": "ha-forwarding-failed",
+      "title": "Standby request forwarding failed",
+      "subsystem": "ha",
+      "location": "external",
+      "patterns": [
+        "error during forward(ed|ing) RPC request",
+        "forward request error",
+        "cannot forward request; no connection or address not known",
+        "error creating forwarding RPC request",
+        "err setting up forwarding rpc client",
+        "error parsing cluster address attempting to refresh forwarding connection"
+      ],
+      "summary": "A standby could not forward a client request to the active node over the cluster port (gRPC on 8201).",
+      "internal_causes": [
+        "`cluster_addr` of the active node is unreachable from standbys."
+      ],
+      "external_causes": [
+        "Firewall/security group blocks 8201.",
+        "Load balancer or proxy in front of 8201 (it must be direct TCP).",
+        "Active node changed and connections are being re-established."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        },
+        {
+          "step": "Check leader and its cluster address",
+          "command": "vault read sys/leader"
+        },
+        {
+          "step": "Verify API (8200) and cluster (8201) ports are reachable between every pair of nodes",
+          "command": "nc -zv <peer-host> 8200 && nc -zv <peer-host> 8201"
+        },
+        {
+          "step": "Stream server logs at debug level without a restart",
+          "command": "vault monitor -log-level=debug"
+        }
+      ],
+      "references": [
+        {
+          "title": "High availability mode",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/ha"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/request_forwarding.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/request_forwarding.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] core: forward request error: error=\"error during forwarding RPC request\""
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/request_forwarding.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/request_forwarding.go"
+      }
+    },
+    {
+      "id": "ha-perf-standby-forward",
+      "title": "Please forward to the active node",
+      "subsystem": "ha",
+      "location": "internal",
+      "patterns": [
+        "please forward to the active node"
+      ],
+      "summary": "A performance standby got a write it cannot handle locally. Vault normally forwards this; if a client sees it, forwarding is broken or bypassed.",
+      "internal_causes": [
+        "Client talks to a perf standby with forwarding disabled.",
+        "Plugin returns the error directly."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        },
+        {
+          "step": "Send writes to the active node through the load balancer (use sys/health?perfstandbyok for read-only pools)"
+        },
+        {
+          "step": "Stream server logs at debug level without a restart",
+          "command": "vault monitor -log-level=debug"
+        }
+      ],
+      "references": [
+        {
+          "title": "Performance standby nodes",
+          "url": "https://developer.hashicorp.com/vault/docs/enterprise/performance-standby"
+        },
+        {
+          "title": "Source: hashicorp/vault/sdk/logical/error.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/sdk/logical/error.go"
+        }
+      ],
+      "examples": [
+        "Code: 500. Errors:\n\n* please forward to the active node"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "sdk/logical/error.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/sdk/logical/error.go"
+      }
+    },
+    {
+      "id": "ha-leadership-lost",
+      "title": "Leadership lost / stepping down",
+      "subsystem": "ha",
+      "location": "both",
+      "patterns": [
+        "leadership lost, stopping active operation",
+        "shutdown while waiting for leadership",
+        "leader advertisement setup failed",
+        "clearing leader advertisement failed",
+        "audit device configuration failed, skipping HA lock acquisition"
+      ],
+      "summary": "The active node lost leadership and stepped down, or a node cannot become active.",
+      "internal_causes": [
+        "Post-unseal setup failed (for example an audit device could not start), so Vault will not take the lock.",
+        "Manual step-down."
+      ],
+      "external_causes": [
+        "Storage/HA backend lost the lock or quorum.",
+        "Audit sink (file/socket/syslog) not available."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        },
+        {
+          "step": "List raft peers; confirm one leader and that all voters are present",
+          "command": "vault operator raft list-peers"
+        },
+        {
+          "step": "Check the log lines right before the step-down for the real error"
+        },
+        {
+          "step": "If an audit device failed, check its file path/socket",
+          "command": "vault audit list -detailed"
+        }
+      ],
+      "references": [
+        {
+          "title": "High availability mode",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/ha"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/ha.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/ha.go"
+        }
+      ],
+      "examples": [
+        "[WARN]  core: leadership lost, stopping active operation"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/ha.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/ha.go"
+      }
+    },
+    {
+      "id": "ha-cluster-listener",
+      "title": "Cluster listener / cluster TLS error",
+      "subsystem": "ha",
+      "location": "internal",
+      "patterns": [
+        "clustering not disabled but no addresses to listen on",
+        "no cluster listener configured",
+        "failed to get tls configuration when starting cluster listener",
+        "cluster addresses not found",
+        "no local cluster cert found",
+        "(got )?forwarding connection (client )?but no local cert",
+        "error parsing local cluster certificate"
+      ],
+      "summary": "Vault could not start the cluster (8201) listener or load its internal cluster certificate.",
+      "internal_causes": [
+        "`cluster_addr` missing or not matching a listener address.",
+        "Node not unsealed yet, so cluster certificates are not loaded."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Review the seal / storage / listener stanzas in the server config",
+          "command": "cat /etc/vault.d/vault.hcl"
+        },
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        },
+        {
+          "step": "Confirm something listens on the cluster port",
+          "command": "ss -ltnp | grep 8201"
+        }
+      ],
+      "references": [
+        {
+          "title": "High availability mode",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/ha"
+        },
+        {
+          "title": "cluster_addr parameter",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration#cluster_addr"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/cluster.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/cluster.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] core: clustering not disabled but no addresses to listen on"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/cluster.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/cluster.go"
+      }
+    },
+    {
+      "id": "ha-x-forwarded-for",
+      "title": "X-Forwarded-For rejected",
+      "subsystem": "ha",
+      "location": "both",
+      "patterns": [
+        "client address not authorized for x-forwarded-for",
+        "missing x-forwarded-for header and configured to reject",
+        "malformed x-forwarded-for"
+      ],
+      "summary": "The listener's X-Forwarded-For settings rejected the request from the load balancer.",
+      "internal_causes": [
+        "`x_forwarded_for_authorized_addrs` missing the LB's subnet.",
+        "`x_forwarded_for_reject_not_present` set while some paths bypass the LB."
+      ],
+      "external_causes": [
+        "Load balancer not adding the header, or adding multiple hops."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Review x_forwarded_for_* settings on the listener",
+          "command": "grep -E 'x_forwarded_for' /etc/vault.d/vault.hcl"
+        },
+        {
+          "step": "Confirm LB source IPs and header behaviour"
+        }
+      ],
+      "references": [
+        {
+          "title": "TCP listener configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/listener/tcp"
+        },
+        {
+          "title": "Source: hashicorp/vault/http/handler.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/http/handler.go"
+        }
+      ],
+      "examples": [
+        "Code: 403. Errors:\n\n* client address not authorized for x-forwarded-for and configured to reject connection"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "http/handler.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/http/handler.go"
+      }
+    },
+    {
+      "id": "network-connection-refused",
+      "title": "Connection refused / timeout reaching Vault",
+      "subsystem": "network",
+      "location": "external",
+      "patterns": [
+        "dial tcp .*: connect: connection refused",
+        "dial tcp .*: i/o timeout",
+        "dial tcp: lookup .*: no such host",
+        "connect: no route to host",
+        "connection reset by peer"
+      ],
+      "summary": "The client could not open a TCP connection. Vault is down, listening elsewhere, or the network path is blocked.",
+      "internal_causes": [
+        "VAULT_ADDR points at the wrong host/port.",
+        "Listener bound to 127.0.0.1 only."
+      ],
+      "external_causes": [
+        "Vault process not running or crash-looping.",
+        "Firewall, security group or Kubernetes Service/NetworkPolicy blocking the port.",
+        "DNS failure."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Check VAULT_ADDR",
+          "command": "echo $VAULT_ADDR"
+        },
+        {
+          "step": "Check the process and listening sockets on the server",
+          "command": "systemctl status vault; ss -ltnp | grep 820"
+        },
+        {
+          "step": "Test the path from the client",
+          "command": "nc -zv <host> 8200"
+        },
+        {
+          "step": "Collect the full server log around the event",
+          "command": "journalctl -u vault --since '-30 min' --no-pager"
+        }
+      ],
+      "references": [
+        {
+          "title": "TCP listener configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/listener/tcp"
+        }
+      ],
+      "examples": [
+        "Error checking seal status: Get \"https://vault:8200/v1/sys/seal-status\": dial tcp 10.0.0.11:8200: connect: connection refused"
+      ],
+      "source": {
+        "repo": null,
+        "note": "Go net (client side)"
+      }
+    },
+    {
+      "id": "network-too-many-open-files",
+      "title": "Too many open files",
+      "subsystem": "network",
+      "location": "external",
+      "patterns": [
+        "too many open files",
+        "accept4: too many open files"
+      ],
+      "summary": "Vault hit the file descriptor limit, so it cannot accept connections or open storage files.",
+      "internal_causes": [
+        "Client connection leak (no keep-alive reuse) or very many leases/plugins."
+      ],
+      "external_causes": [
+        "LimitNOFILE too low in the systemd unit / container."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Check limits and current usage",
+          "command": "cat /proc/$(pidof vault)/limits | grep 'open files'; ls /proc/$(pidof vault)/fd | wc -l"
+        },
+        {
+          "step": "Raise LimitNOFILE (e.g. 65536) in the unit and restart",
+          "command": "systemctl edit vault"
+        }
+      ],
+      "references": [
+        {
+          "title": "Server configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration"
+        }
+      ],
+      "examples": [
+        "[ERROR] http: Accept error: accept tcp [::]:8200: accept4: too many open files; retrying in 1s"
+      ],
+      "source": {
+        "repo": null,
+        "note": "Linux / Go net"
+      }
+    },
+    {
+      "id": "network-plugin-exited",
+      "title": "Plugin process failed to start",
+      "subsystem": "network",
+      "location": "both",
+      "patterns": [
+        "plugin exited before we could connect",
+        "Unrecognized remote plugin message",
+        "Incompatible API version with plugin",
+        "plugin.*(checksum|sha256) (mismatch|does not match)"
+      ],
+      "summary": "An external plugin binary failed to start or speak the plugin protocol.",
+      "internal_causes": [
+        "Plugin registered with the wrong SHA256 or not registered after upgrade.",
+        "`plugin_directory` wrong."
+      ],
+      "external_causes": [
+        "Binary built for another OS/arch, missing libraries (e.g. Oracle Instant Client), or noexec mount.",
+        "mlock or memory limits killing the plugin."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Check the registration",
+          "command": "vault plugin info <type> <name>"
+        },
+        {
+          "step": "Recompute the checksum and compare",
+          "command": "sha256sum <plugin_directory>/<binary>"
+        },
+        {
+          "step": "Run the binary by hand as the vault user to see linker errors",
+          "command": "sudo -u vault <plugin_directory>/<binary> --help"
+        }
+      ],
+      "references": [
+        {
+          "title": "Plugin architecture",
+          "url": "https://developer.hashicorp.com/vault/docs/plugins/plugin-architecture"
+        },
+        {
+          "title": "Source: hashicorp/go-plugin/client.go",
+          "url": "https://github.com/hashicorp/go-plugin/blob/main/client.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] secrets.database.database_1234: error creating database object: error=\"Unrecognized remote plugin message: \n\nThis usually means that the plugin is either invalid or simply\nneeds to be recompiled to support the latest protocol.\""
+      ],
+      "source": {
+        "repo": "hashicorp/go-plugin",
+        "path": "client.go",
+        "url": "https://github.com/hashicorp/go-plugin/blob/main/client.go"
+      }
+    },
+    {
+      "id": "token-permission-denied",
+      "title": "Permission denied",
+      "subsystem": "token",
+      "location": "internal",
+      "patterns": [
+        "\\bpermission denied\\b",
+        "Code: 403\\. Errors:\\s*\\*\\s*(1 error occurred:\\s*\\*\\s*)?permission denied"
+      ],
+      "summary": "The token's ACL policies do not allow the operation on that path, or the token is invalid/expired (Vault returns 403 in both cases).",
+      "internal_causes": [
+        "Policy lacks the capability (read/create/update/list/sudo) on the exact path (KV v2 needs data/ and metadata/).",
+        "Token expired, revoked, or used in the wrong namespace.",
+        "Sentinel/EGP or control group denial (Enterprise)."
+      ],
+      "external_causes": [
+        "Client sends the wrong token (stale VAULT_TOKEN, agent cache).",
+        "Auth method backend changed group/role mapping."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Inspect the token: policies, TTL, entity, namespace",
+          "command": "vault token lookup"
+        },
+        {
+          "step": "Check the token's capabilities on the exact path",
+          "command": "vault token capabilities <path>"
+        },
+        {
+          "step": "Read the attached policies",
+          "command": "vault policy read <policy>"
+        },
+        {
+          "step": "Find the failing request in the audit log",
+          "command": "jq -c 'select(.error != null) | {time, type, path: .request.path, error}' /var/log/vault/audit.log | tail -20"
+        },
+        {
+          "step": "Confirm namespace",
+          "command": "echo $VAULT_NAMESPACE"
+        }
+      ],
+      "references": [
+        {
+          "title": "Policies",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/policies"
+        },
+        {
+          "title": "Tokens",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/tokens"
+        },
+        {
+          "title": "Source: hashicorp/vault/api/lifetime_watcher.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/api/lifetime_watcher.go"
+        }
+      ],
+      "examples": [
+        "Error reading secret/data/app: Error making API request.\n\nURL: GET https://vault:8200/v1/secret/data/app\nCode: 403. Errors:\n\n* permission denied"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "api/lifetime_watcher.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/api/lifetime_watcher.go"
+      }
+    },
+    {
+      "id": "token-bad-token",
+      "title": "Invalid / malformed token",
+      "subsystem": "token",
+      "location": "internal",
+      "patterns": [
+        "\\bbad token\\b",
+        "can'?t decode token",
+        "cannot decode token",
+        "invalid token",
+        "cannot lookup blank token"
+      ],
+      "summary": "The client sent a token that is malformed or unknown.",
+      "internal_causes": [
+        "Token truncated, wrong prefix (hvs./hvb./s.), or from another cluster.",
+        "Batch token used on a cluster other than where it was created (without replication)."
+      ],
+      "external_causes": [
+        "Proxy or app config mangling the X-Vault-Token header."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Inspect the token: policies, TTL, entity, namespace",
+          "command": "vault token lookup"
+        },
+        {
+          "step": "Log in again to get a fresh token",
+          "command": "vault login -method=<method>"
+        },
+        {
+          "step": "Find the failing request in the audit log",
+          "command": "jq -c 'select(.error != null) | {time, type, path: .request.path, error}' /var/log/vault/audit.log | tail -20"
+        }
+      ],
+      "references": [
+        {
+          "title": "Tokens",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/tokens"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/request_handling.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/request_handling.go"
+        }
+      ],
+      "examples": [
+        "Code: 403. Errors:\n\n* bad token"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/request_handling.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/request_handling.go"
+      }
+    },
+    {
+      "id": "token-lease-not-found",
+      "title": "Lease not found / expired",
+      "subsystem": "token",
+      "location": "internal",
+      "patterns": [
+        "lease not found",
+        "invalid lease ID",
+        "lease expired",
+        "cannot renew lease, no valid associated token",
+        "invalid lease"
+      ],
+      "summary": "The lease ID is unknown or already expired/revoked, so it cannot be renewed or revoked.",
+      "internal_causes": [
+        "App renewing after max_ttl.",
+        "Parent token revoked, which revoked child leases.",
+        "Lease from another cluster/namespace."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Look up the lease",
+          "command": "vault lease lookup <lease_id>"
+        },
+        {
+          "step": "Check the mount's default/max TTL",
+          "command": "vault read sys/mounts/<mount>/tune"
+        },
+        {
+          "step": "Inspect the token: policies, TTL, entity, namespace",
+          "command": "vault token lookup"
+        }
+      ],
+      "references": [
+        {
+          "title": "Lease, renew, and revoke",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/lease"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/expiration.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/expiration.go"
+        }
+      ],
+      "examples": [
+        "Error renewing lease: Code: 400. Errors:\n\n* lease not found"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/expiration.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/expiration.go"
+      }
+    },
+    {
+      "id": "token-batch-limits",
+      "title": "Batch token limitations",
+      "subsystem": "token",
+      "location": "internal",
+      "patterns": [
+        "batch tokens cannot (be renewed|be revoked|create more tokens|be root tokens)",
+        "cannot register a lease for a batch token",
+        "'token_type' cannot be 'batch' when role is set to generate"
+      ],
+      "summary": "Batch tokens are lightweight and cannot be renewed, revoked, create children or be root.",
+      "internal_causes": [
+        "Role or auth method uses token_type=batch for a workload that needs renewal or child tokens."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Inspect the token: policies, TTL, entity, namespace",
+          "command": "vault token lookup"
+        },
+        {
+          "step": "Check the role's token_type",
+          "command": "vault read auth/<mount>/role/<role>"
+        },
+        {
+          "step": "Switch to service tokens or adjust the client"
+        }
+      ],
+      "references": [
+        {
+          "title": "Batch tokens",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/tokens#batch-tokens"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/expiration.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/expiration.go"
+        }
+      ],
+      "examples": [
+        "Code: 400. Errors:\n\n* batch tokens cannot be renewed"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/expiration.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/expiration.go"
+      }
+    },
+    {
+      "id": "token-revocation-failed",
+      "title": "Lease revocation failing / irrevocable",
+      "subsystem": "token",
+      "location": "both",
+      "patterns": [
+        "failed to revoke lease",
+        "failed to revoke entry",
+        "hit max irrevocable leases",
+        "lease is expired and has failed previous revocation attempts",
+        "failed to revoke an invalid lease",
+        "failed to mark lease as irrevocable"
+      ],
+      "summary": "Vault keeps failing to revoke leases. The secrets engine cannot delete the credential at the target system.",
+      "internal_causes": [
+        "Secrets engine config broken (root credential rotated outside Vault)."
+      ],
+      "external_causes": [
+        "Target DB/cloud unreachable or root credentials lack DROP/delete permission.",
+        "Target user already deleted manually."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "List irrevocable leases",
+          "command": "vault list -format=json sys/leases/lookup/<mount>/creds/<role> | head"
+        },
+        {
+          "step": "Check the error on irrevocable leases",
+          "command": "vault read sys/leases/count; vault read -format=json sys/leases?type=irrevocable"
+        },
+        {
+          "step": "Test the secrets engine connection",
+          "command": "vault read <mount>/config/<name>"
+        },
+        {
+          "step": "After fixing the target, force-revoke if the credential is already gone",
+          "command": "vault lease revoke -force -prefix <mount>/creds/<role>"
+        }
+      ],
+      "references": [
+        {
+          "title": "Lease, renew, and revoke",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/lease"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/expiration.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/expiration.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] expiration: failed to revoke lease: lease_id=database/creds/app/abc123 error=\"failed to revoke entry: resp: (*logical.Response)(nil) err: dial tcp 10.0.2.5:5432: i/o timeout\""
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/expiration.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/expiration.go"
+      }
+    },
+    {
+      "id": "token-restoring-leases",
+      "title": "Error restoring leases on unseal",
+      "subsystem": "token",
+      "location": "both",
+      "patterns": [
+        "error restoring leases",
+        "barrier sealed while restoring leases",
+        "context canceled while restoring leases"
+      ],
+      "summary": "Loading leases into the expiration manager after unseal/leadership failed or was interrupted.",
+      "internal_causes": [
+        "Very large number of leases (often millions from short-lived tokens) makes leadership changes slow."
+      ],
+      "external_causes": [
+        "Storage latency during lease restore."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Check lease counts",
+          "command": "vault read sys/leases/count -format=json 2>/dev/null || vault read sys/internal/counters/tokens"
+        },
+        {
+          "step": "Check vault.expire.num_leases metric",
+          "command": "curl -s -H \"X-Vault-Token: $VAULT_TOKEN\" $VAULT_ADDR/v1/sys/metrics | jq '.Gauges[] | select(.Name==\"vault.expire.num_leases\")'"
+        },
+        {
+          "step": "Reduce lease TTLs / use batch tokens for high-volume logins"
+        }
+      ],
+      "references": [
+        {
+          "title": "Lease, renew, and revoke",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/lease"
+        },
+        {
+          "title": "Resource quotas",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/resource-quotas"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/expiration.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/expiration.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] expiration: error restoring leases: error=\"context deadline exceeded\""
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/expiration.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/expiration.go"
+      }
+    },
+    {
+      "id": "token-quota-exceeded",
+      "title": "Rate limit / lease count quota exceeded",
+      "subsystem": "token",
+      "location": "internal",
+      "patterns": [
+        "rate limit quota exceeded",
+        "lease count quota exceeded",
+        "Code: 429.*quota"
+      ],
+      "summary": "A resource quota rejected the request (HTTP 429 for rate limits).",
+      "internal_causes": [
+        "Quota too low for the workload.",
+        "Retry storm or runaway client creating tokens/leases."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "List quotas",
+          "command": "vault list sys/quotas/rate-limit; vault list sys/quotas/lease-count"
+        },
+        {
+          "step": "Read the quota that matched",
+          "command": "vault read sys/quotas/rate-limit/<name>"
+        },
+        {
+          "step": "Find the failing request in the audit log",
+          "command": "jq -c 'select(.error != null) | {time, type, path: .request.path, error}' /var/log/vault/audit.log | tail -20"
+        }
+      ],
+      "references": [
+        {
+          "title": "Resource quotas",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/resource-quotas"
+        },
+        {
+          "title": "Source: hashicorp/vault/sdk/logical/error.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/sdk/logical/error.go"
+        }
+      ],
+      "examples": [
+        "Error making API request.\n\nCode: 429. Errors:\n\n* rate limit quota exceeded"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "sdk/logical/error.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/sdk/logical/error.go"
+      }
+    },
+    {
+      "id": "token-ttl-limits",
+      "title": "Token TTL exceeds allowed maximum",
+      "subsystem": "token",
+      "location": "internal",
+      "patterns": [
+        "explicit max TTL of .* is greater than system/mount allowed value",
+        "explicit_max_ttl must be positive",
+        "TTL .* is longer than permitted maxTTL",
+        "token ttl should not be greater than token max ttl"
+      ],
+      "summary": "Requested or configured TTL is above the mount/system max TTL, so Vault caps it.",
+      "internal_causes": [
+        "Role max TTL higher than mount `max_lease_ttl` or system default (32 days)."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Check mount tuning",
+          "command": "vault read sys/auth/<mount>/tune"
+        },
+        {
+          "step": "Check the role TTLs",
+          "command": "vault read auth/<mount>/role/<role>"
+        },
+        {
+          "step": "Tune the mount if a longer TTL is intended",
+          "command": "vault auth tune -max-lease-ttl=<dur> <mount>"
+        }
+      ],
+      "references": [
+        {
+          "title": "Tokens",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/tokens"
+        },
+        {
+          "title": "Lease, renew, and revoke",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/lease"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/token_store.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/token_store.go"
+        }
+      ],
+      "examples": [
+        "[WARN]  Given explicit max TTL of 8760h is greater than system/mount allowed value of 768h seconds"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/token_store.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/token_store.go"
+      }
+    },
+    {
+      "id": "token-namespace-mismatch",
+      "title": "Token or lease used across namespaces",
+      "subsystem": "token",
+      "location": "internal",
+      "patterns": [
+        "cannot renew a (token|lease) across namespaces",
+        "error looking up namespace from the (token|lease)'s namespace ID",
+        "failed to fetch token'?s? namespace"
+      ],
+      "summary": "A token or lease is used from a namespace different from where it was created.",
+      "internal_causes": [
+        "Client sets VAULT_NAMESPACE (or X-Vault-Namespace) differently for login and renew."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Inspect the token: policies, TTL, entity, namespace",
+          "command": "vault token lookup"
+        },
+        {
+          "step": "Check the namespace the client sends",
+          "command": "echo $VAULT_NAMESPACE"
+        },
+        {
+          "step": "Renew/revoke from the namespace that issued the token"
+        }
+      ],
+      "references": [
+        {
+          "title": "Namespaces",
+          "url": "https://developer.hashicorp.com/vault/docs/enterprise/namespaces"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/expiration.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/expiration.go"
+        }
+      ],
+      "examples": [
+        "Code: 403. Errors:\n\n* cannot renew a token across namespaces"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/expiration.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/expiration.go"
+      }
+    },
+    {
+      "id": "auth-aws-binding",
+      "title": "AWS auth role binding mismatch",
+      "subsystem": "auth",
+      "location": "both",
+      "patterns": [
+        "IAM Principal .* does not belong to the role",
+        "IAM role ARN does not satisfy the constraint on role",
+        "account ID does not belong to role",
+        "AMI ID does not belong to role",
+        "VPC ID does not satisfy the constraint",
+        "IAM instance profile ARN does not satisfy the constraint"
+      ],
+      "summary": "The AWS identity that logged in does not match the bound_* constraints on the Vault role.",
+      "internal_causes": [
+        "Role bound_iam_principal_arn / bound_account_id / bound_vpc_id wrong.",
+        "Principal ARN changed (role recreated) and Vault cached the old unique ID."
+      ],
+      "external_causes": [
+        "Workload uses another role (assumed role, IRSA, cross-account) than expected."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "From the Vault host, confirm which IAM identity Vault is using",
+          "command": "aws sts get-caller-identity"
+        },
+        {
+          "step": "Read the Vault role bindings",
+          "command": "vault read auth/aws/role/<role>"
+        },
+        {
+          "step": "Re-save the role to refresh resolved principal IDs",
+          "command": "vault write auth/aws/role/<role> bound_iam_principal_arn=<arn>"
+        }
+      ],
+      "references": [
+        {
+          "title": "AWS auth method",
+          "url": "https://developer.hashicorp.com/vault/docs/auth/aws"
+        },
+        {
+          "title": "Source: hashicorp/vault/builtin/credential/aws/path_login.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/builtin/credential/aws/path_login.go"
+        }
+      ],
+      "examples": [
+        "Error authenticating: Code: 400. Errors:\n\n* IAM Principal \"arn:aws:sts::123456789012:assumed-role/app/i-0abc\" does not belong to the role \"app\""
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "builtin/credential/aws/path_login.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/builtin/credential/aws/path_login.go"
+      }
+    },
+    {
+      "id": "auth-aws-sts",
+      "title": "AWS auth STS call failed",
+      "subsystem": "auth",
+      "location": "external",
+      "patterns": [
+        "error making upstream request",
+        "body of GetCallerIdentity is invalid",
+        "SignatureDoesNotMatch",
+        "InvalidClientTokenId",
+        "iam_server_id_header_value",
+        "X-Vault-AWS-IAM-Server-ID"
+      ],
+      "summary": "Vault could not verify the signed sts:GetCallerIdentity request from the client.",
+      "internal_causes": [
+        "iam_server_id_header_value set in Vault but not sent by the client (or the reverse).",
+        "STS endpoint/region config mismatch (sts_endpoint, sts_region)."
+      ],
+      "external_causes": [
+        "Client clock skew breaks the signature.",
+        "Vault cannot reach STS (proxy, VPC endpoint).",
+        "Expired client credentials."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Check Vault's AWS client config",
+          "command": "vault read auth/aws/config/client"
+        },
+        {
+          "step": "Check client clock",
+          "command": "timedatectl status"
+        },
+        {
+          "step": "From the Vault host, confirm STS is reachable",
+          "command": "curl -sv https://sts.amazonaws.com 2>&1 | head"
+        }
+      ],
+      "references": [
+        {
+          "title": "AWS auth method",
+          "url": "https://developer.hashicorp.com/vault/docs/auth/aws"
+        },
+        {
+          "title": "Source: hashicorp/vault/builtin/credential/aws/path_login.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/builtin/credential/aws/path_login.go"
+        }
+      ],
+      "examples": [
+        "Error authenticating: Code: 400. Errors:\n\n* error making upstream request: received error code 403 from STS: <ErrorResponse><Error><Code>SignatureDoesNotMatch</Code>"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "builtin/credential/aws/path_login.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/builtin/credential/aws/path_login.go"
+      }
+    },
+    {
+      "id": "auth-kubernetes",
+      "title": "Kubernetes auth login failed",
+      "subsystem": "auth",
+      "location": "both",
+      "patterns": [
+        "service account name not authorized",
+        "namespace not authorized",
+        "lookup failed: service account (unauthorized|jwt not valid)",
+        "lookup failed: service account jwt valid for audience",
+        "could not load backend configuration",
+        "tokenreviews.* is forbidden",
+        "invalid expiration time \\(exp\\) claim: token is expired"
+      ],
+      "summary": "Vault could not validate the pod's service account JWT, or the SA/namespace is not bound to the role.",
+      "internal_causes": [
+        "Role bound_service_account_names / namespaces do not include the pod's SA.",
+        "`audience` on the role does not match the projected token audience.",
+        "kubernetes_host / CA config wrong."
+      ],
+      "external_causes": [
+        "Vault's reviewer token lacks system:auth-delegator (TokenReview forbidden).",
+        "SA deleted/recreated, or short-lived token expired.",
+        "Vault cannot reach the Kubernetes API."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Read the role bindings",
+          "command": "vault read auth/kubernetes/role/<role>"
+        },
+        {
+          "step": "Read the auth config",
+          "command": "vault read auth/kubernetes/config"
+        },
+        {
+          "step": "Check auth-delegator binding for the reviewer SA",
+          "command": "kubectl get clusterrolebinding -o wide | grep auth-delegator"
+        },
+        {
+          "step": "Decode the pod JWT to see sa, namespace, aud",
+          "command": "kubectl exec <pod> -- cat /var/run/secrets/kubernetes.io/serviceaccount/token | cut -d. -f2 | base64 -d 2>/dev/null | jq"
+        }
+      ],
+      "references": [
+        {
+          "title": "Kubernetes auth method",
+          "url": "https://developer.hashicorp.com/vault/docs/auth/kubernetes"
+        },
+        {
+          "title": "Source: hashicorp/vault-plugin-auth-kubernetes/path_login.go",
+          "url": "https://github.com/hashicorp/vault-plugin-auth-kubernetes/blob/main/path_login.go"
+        }
+      ],
+      "examples": [
+        "Error authenticating: Code: 403. Errors:\n\n* service account name not authorized"
+      ],
+      "source": {
+        "repo": "hashicorp/vault-plugin-auth-kubernetes",
+        "path": "path_login.go",
+        "url": "https://github.com/hashicorp/vault-plugin-auth-kubernetes/blob/main/path_login.go"
+      }
+    },
+    {
+      "id": "auth-ldap",
+      "title": "LDAP auth bind/search failure",
+      "subsystem": "auth",
+      "location": "external",
+      "patterns": [
+        "LDAP Result Code \\d+",
+        "bind \\(service\\) failed",
+        "LDAP search (for binddn )?failed",
+        "discovery of user bind DN failed",
+        "ldap: (failed to connect|error connecting to host)",
+        "ldap backend not configured",
+        "cannot derive UserBindDN"
+      ],
+      "summary": "Vault could not connect, bind, or find the user/groups in the LDAP directory.",
+      "internal_causes": [
+        "Wrong url, userdn, userattr, groupdn, groupfilter or upndomain.",
+        "binddn/bindpass wrong or rotated."
+      ],
+      "external_causes": [
+        "Directory unreachable (port 389/636), or TLS CA not trusted.",
+        "User locked/disabled (Result Code 49 Invalid Credentials)."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Read the auth config",
+          "command": "vault read auth/ldap/config"
+        },
+        {
+          "step": "Reproduce the bind from the Vault host",
+          "command": "ldapsearch -H <url> -D '<binddn>' -W -b '<userdn>' '(<userattr>=<user>)'"
+        },
+        {
+          "step": "Check TLS to the directory",
+          "command": "openssl s_client -connect <ldap-host>:636 </dev/null"
+        }
+      ],
+      "references": [
+        {
+          "title": "LDAP auth method",
+          "url": "https://developer.hashicorp.com/vault/docs/auth/ldap"
+        },
+        {
+          "title": "Source: hashicorp/vault/builtin/credential/ldap/backend.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/builtin/credential/ldap/backend.go"
+        }
+      ],
+      "examples": [
+        "Error authenticating: Code: 400. Errors:\n\n* ldap operation failed: failed to bind as user: LDAP Result Code 49 \"Invalid Credentials\""
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "builtin/credential/ldap/backend.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/builtin/credential/ldap/backend.go"
+      }
+    },
+    {
+      "id": "auth-cert",
+      "title": "TLS certificate auth failed",
+      "subsystem": "auth",
+      "location": "both",
+      "patterns": [
+        "client certificate must be supplied",
+        "failed to verify client'?s certificate",
+        "no client certificate found",
+        "certificate mismatch of a trusted leaf certificate",
+        "invalid certificate or no client certificate supplied"
+      ],
+      "summary": "Cert auth did not receive a client certificate, or the cert does not chain to a trusted cert on any role.",
+      "internal_causes": [
+        "CA not registered in auth/cert/certs/<role>, or allowed_* constraints too strict."
+      ],
+      "external_causes": [
+        "Load balancer terminates TLS so the client cert never reaches Vault.",
+        "Listener tls_disable_client_certs = true."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "List trusted cert roles",
+          "command": "vault list auth/cert/certs"
+        },
+        {
+          "step": "Test with the client cert directly against a node",
+          "command": "vault login -method=cert -client-cert=client.pem -client-key=client.key"
+        },
+        {
+          "step": "Use TCP passthrough on the LB for cert auth"
+        }
+      ],
+      "references": [
+        {
+          "title": "TLS certificates auth method",
+          "url": "https://developer.hashicorp.com/vault/docs/auth/cert"
+        },
+        {
+          "title": "Source: hashicorp/vault/builtin/credential/cert/path_login.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/builtin/credential/cert/path_login.go"
+        }
+      ],
+      "examples": [
+        "Error authenticating: Code: 400. Errors:\n\n* client certificate must be supplied"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "builtin/credential/cert/path_login.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/builtin/credential/cert/path_login.go"
+      }
+    },
+    {
+      "id": "auth-approle",
+      "title": "AppRole login failed",
+      "subsystem": "auth",
+      "location": "internal",
+      "patterns": [
+        "invalid role or secret ID",
+        "invalid secret id",
+        "source address .* unauthorized",
+        "bind_secret_id is not set on the role",
+        "SecretID is already registered"
+      ],
+      "summary": "AppRole rejected the role_id/secret_id pair or the source IP.",
+      "internal_causes": [
+        "secret_id expired, used up (secret_id_num_uses) or from another role.",
+        "secret_id_bound_cidrs / token_bound_cidrs exclude the client."
+      ],
+      "external_causes": [
+        "Client IP changed (NAT, LB) compared to bound CIDRs."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Look up the secret ID accessor",
+          "command": "vault write auth/approle/role/<role>/secret-id-accessor/lookup secret_id_accessor=<accessor>"
+        },
+        {
+          "step": "Read role constraints",
+          "command": "vault read auth/approle/role/<role>"
+        },
+        {
+          "step": "Find the failing request in the audit log",
+          "command": "jq -c 'select(.error != null) | {time, type, path: .request.path, error}' /var/log/vault/audit.log | tail -20"
+        }
+      ],
+      "references": [
+        {
+          "title": "AppRole auth method",
+          "url": "https://developer.hashicorp.com/vault/docs/auth/approle"
+        },
+        {
+          "title": "Source: hashicorp/vault/builtin/credential/approle/path_login.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/builtin/credential/approle/path_login.go"
+        }
+      ],
+      "examples": [
+        "Error writing data to auth/approle/login: Code: 400. Errors:\n\n* invalid role or secret ID"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "builtin/credential/approle/path_login.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/builtin/credential/approle/path_login.go"
+      }
+    },
+    {
+      "id": "auth-userpass",
+      "title": "Invalid username or password",
+      "subsystem": "auth",
+      "location": "internal",
+      "patterns": [
+        "invalid username or password",
+        "invalid credentials"
+      ],
+      "summary": "Userpass (or similar) login rejected the credentials.",
+      "internal_causes": [
+        "Wrong password, wrong mount path, or user missing.",
+        "User lockout after repeated failures."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Check the user exists on the mount",
+          "command": "vault list auth/userpass/users"
+        },
+        {
+          "step": "Check user lockout",
+          "command": "vault read sys/locked-users"
+        },
+        {
+          "step": "Find the failing request in the audit log",
+          "command": "jq -c 'select(.error != null) | {time, type, path: .request.path, error}' /var/log/vault/audit.log | tail -20"
+        }
+      ],
+      "references": [
+        {
+          "title": "Userpass auth method",
+          "url": "https://developer.hashicorp.com/vault/docs/auth/userpass"
+        },
+        {
+          "title": "User lockout",
+          "url": "https://developer.hashicorp.com/vault/docs/concepts/user-lockout"
+        },
+        {
+          "title": "Source: hashicorp/vault/builtin/credential/userpass/path_login.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/builtin/credential/userpass/path_login.go"
+        }
+      ],
+      "examples": [
+        "Error authenticating: Code: 400. Errors:\n\n* invalid username or password"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "builtin/credential/userpass/path_login.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/builtin/credential/userpass/path_login.go"
+      }
+    },
+    {
+      "id": "pki-role-not-allowed",
+      "title": "PKI role does not allow the requested name",
+      "subsystem": "pki",
+      "location": "internal",
+      "patterns": [
+        "(common name|subject alternate name|email address|other SAN OID|serial_number) .* not allowed by this role",
+        "IP Subject Alternative Names are not allowed in this role",
+        "role \\(.*\\) will not issue certificate for name"
+      ],
+      "summary": "The PKI role's allowed_domains / allow_* flags do not permit the requested CN or SANs.",
+      "internal_causes": [
+        "allowed_domains missing the domain, or allow_subdomains / allow_glob_domains / allow_bare_domains not set.",
+        "allow_ip_sans false."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Read the role",
+          "command": "vault read <pki_mount>/roles/<role>"
+        },
+        {
+          "step": "Update the role constraints",
+          "command": "vault write <pki_mount>/roles/<role> allowed_domains=example.com allow_subdomains=true"
+        }
+      ],
+      "references": [
+        {
+          "title": "PKI secrets engine",
+          "url": "https://developer.hashicorp.com/vault/docs/secrets/pki"
+        },
+        {
+          "title": "Source: hashicorp/vault/builtin/logical/pki/issuing/issue_common.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/builtin/logical/pki/issuing/issue_common.go"
+        }
+      ],
+      "examples": [
+        "Error writing data to pki/issue/web: Code: 400. Errors:\n\n* common name app.internal.example.org not allowed by this role"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "builtin/logical/pki/issuing/issue_common.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/builtin/logical/pki/issuing/issue_common.go"
+      }
+    },
+    {
+      "id": "pki-issuer-missing",
+      "title": "PKI issuer missing or unusable",
+      "subsystem": "pki",
+      "location": "internal",
+      "patterns": [
+        "no default issuer currently configured",
+        "issuer does not exist",
+        "issuer missing proper issuance usage or key",
+        "unable to fetch corresponding key for issuer",
+        "could not fetch the CA certificate \\(was one set\\?\\)"
+      ],
+      "summary": "The PKI mount has no usable issuer (none generated/imported, default not set, or key missing).",
+      "internal_causes": [
+        "Mount never got a root/intermediate.",
+        "Default issuer deleted, or issuer has leaf_not_after_behavior/usage limits."
+      ],
+      "external_causes": [
+        "Managed key (HSM/KMS) for the issuer unavailable (Enterprise)."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "List issuers",
+          "command": "vault list <pki_mount>/issuers"
+        },
+        {
+          "step": "Check the default issuer",
+          "command": "vault read <pki_mount>/config/issuers"
+        },
+        {
+          "step": "Set the default",
+          "command": "vault write <pki_mount>/config/issuers default=<issuer_ref>"
+        }
+      ],
+      "references": [
+        {
+          "title": "PKI secrets engine",
+          "url": "https://developer.hashicorp.com/vault/docs/secrets/pki"
+        },
+        {
+          "title": "Source: hashicorp/vault/builtin/logical/pki/issuing/issuers.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/builtin/logical/pki/issuing/issuers.go"
+        }
+      ],
+      "examples": [
+        "Code: 500. Errors:\n\n* no default issuer currently configured"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "builtin/logical/pki/issuing/issuers.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/builtin/logical/pki/issuing/issuers.go"
+      }
+    },
+    {
+      "id": "pki-ttl-beyond-ca",
+      "title": "Certificate TTL beyond CA expiration",
+      "subsystem": "pki",
+      "location": "internal",
+      "patterns": [
+        "beyond the expiration of the CA certificate",
+        "not_after .* longer than permitted maxTTL"
+      ],
+      "summary": "The requested cert would outlive the issuing CA, and leaf_not_after_behavior is `err`.",
+      "internal_causes": [
+        "Intermediate CA near expiry.",
+        "Requested TTL too long."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Check CA expiry",
+          "command": "vault read -field=certificate <pki_mount>/issuer/default | openssl x509 -noout -enddate"
+        },
+        {
+          "step": "Rotate the intermediate, lower the TTL, or set leaf_not_after_behavior=truncate",
+          "command": "vault write <pki_mount>/issuer/default leaf_not_after_behavior=truncate"
+        }
+      ],
+      "references": [
+        {
+          "title": "PKI secrets engine",
+          "url": "https://developer.hashicorp.com/vault/docs/secrets/pki"
+        },
+        {
+          "title": "PKI rotation primitives",
+          "url": "https://developer.hashicorp.com/vault/docs/secrets/pki/rotation-primitives"
+        },
+        {
+          "title": "Source: hashicorp/vault/builtin/logical/pki/issuing/issue_common.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/builtin/logical/pki/issuing/issue_common.go"
+        }
+      ],
+      "examples": [
+        "Code: 400. Errors:\n\n* cannot satisfy request, as TTL would result in notAfter of 2026-01-01T00:00:00Z that is beyond the expiration of the CA certificate at 2025-06-01T00:00:00Z"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "builtin/logical/pki/issuing/issue_common.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/builtin/logical/pki/issuing/issue_common.go"
+      }
+    },
+    {
+      "id": "pki-crl-build",
+      "title": "PKI CRL build failure",
+      "subsystem": "pki",
+      "location": "both",
+      "patterns": [
+        "Error building CRLs",
+        "CRL was not updated, as it exceeds the configured max size",
+        "Rebuilding the CRL failed"
+      ],
+      "summary": "Vault could not build or update the CRL for one or more issuers.",
+      "internal_causes": [
+        "Very many revoked, unexpired certificates (no tidy).",
+        "Imported issuer needs revocation_signature_algorithm (PSS-only managed keys)."
+      ],
+      "external_causes": [
+        "Managed key/HSM unavailable for signing."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Run tidy to drop expired revoked certs",
+          "command": "vault write <pki_mount>/tidy tidy_cert_store=true tidy_revoked_certs=true safety_buffer=72h"
+        },
+        {
+          "step": "Check CRL config",
+          "command": "vault read <pki_mount>/config/crl"
+        },
+        {
+          "step": "Force a rebuild",
+          "command": "vault read <pki_mount>/crl/rotate"
+        }
+      ],
+      "references": [
+        {
+          "title": "PKI secrets engine",
+          "url": "https://developer.hashicorp.com/vault/docs/secrets/pki"
+        },
+        {
+          "title": "PKI considerations",
+          "url": "https://developer.hashicorp.com/vault/docs/secrets/pki/considerations"
+        },
+        {
+          "title": "Source: hashicorp/vault/builtin/logical/pki/crl_util.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/builtin/logical/pki/crl_util.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] secrets.pki: CRL was not updated, as it exceeds the configured max size.  The CRL now does not contain all revoked certificates!"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "builtin/logical/pki/crl_util.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/builtin/logical/pki/crl_util.go"
+      }
+    },
+    {
+      "id": "pki-migration-pending",
+      "title": "PKI issuer migration not complete",
+      "subsystem": "pki",
+      "location": "internal",
+      "patterns": [
+        "Can not .* until migration has completed"
+      ],
+      "summary": "After an upgrade the PKI mount is still migrating legacy CA storage to the multi-issuer layout.",
+      "internal_causes": [
+        "Upgrade in progress; on replicated clusters the primary must finish first."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Wait and retry; check the server log for PKI migration messages",
+          "command": "vault monitor -log-level=debug | grep -i pki"
+        },
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        }
+      ],
+      "references": [
+        {
+          "title": "PKI secrets engine",
+          "url": "https://developer.hashicorp.com/vault/docs/secrets/pki"
+        },
+        {
+          "title": "Source: hashicorp/vault/builtin/logical/pki/acme_wrappers.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/builtin/logical/pki/acme_wrappers.go"
+        }
+      ],
+      "examples": [
+        "Code: 500. Errors:\n\n* Can not get issuer until migration has completed"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "builtin/logical/pki/acme_wrappers.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/builtin/logical/pki/acme_wrappers.go"
+      }
+    },
+    {
+      "id": "transit-key-not-found",
+      "title": "Transit key not found",
+      "subsystem": "transit",
+      "location": "internal",
+      "patterns": [
+        "encryption key not found",
+        "key .* not found",
+        "error retrieving wrapping key"
+      ],
+      "summary": "The named transit key does not exist on this mount/namespace.",
+      "internal_causes": [
+        "Wrong key name, mount path or namespace.",
+        "Key deleted (deletion_allowed)."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "List keys",
+          "command": "vault list <transit_mount>/keys"
+        },
+        {
+          "step": "Read the key",
+          "command": "vault read <transit_mount>/keys/<name>"
+        }
+      ],
+      "references": [
+        {
+          "title": "Transit secrets engine",
+          "url": "https://developer.hashicorp.com/vault/docs/secrets/transit"
+        },
+        {
+          "title": "Source: hashicorp/vault/builtin/logical/transit/path_datakey.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/builtin/logical/transit/path_datakey.go"
+        }
+      ],
+      "examples": [
+        "Code: 400. Errors:\n\n* encryption key not found"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "builtin/logical/transit/path_datakey.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/builtin/logical/transit/path_datakey.go"
+      }
+    },
+    {
+      "id": "transit-version-too-old",
+      "title": "Transit key version too old",
+      "subsystem": "transit",
+      "location": "internal",
+      "patterns": [
+        "version is too old \\(disallowed by policy\\)",
+        "cannot use key version",
+        "invalid ciphertext: version is too new"
+      ],
+      "summary": "The ciphertext uses a key version below min_decryption_version (or above the latest).",
+      "internal_causes": [
+        "min_decryption_version raised after rotation without rewrapping data.",
+        "Ciphertext from another cluster/key."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Check key versions",
+          "command": "vault read <transit_mount>/keys/<name>"
+        },
+        {
+          "step": "Rewrap data to the latest version",
+          "command": "vault write <transit_mount>/rewrap/<name> ciphertext=<ct>"
+        },
+        {
+          "step": "Lower min_decryption_version if needed",
+          "command": "vault write <transit_mount>/keys/<name>/config min_decryption_version=<n>"
+        }
+      ],
+      "references": [
+        {
+          "title": "Transit secrets engine",
+          "url": "https://developer.hashicorp.com/vault/docs/secrets/transit"
+        },
+        {
+          "title": "Source: hashicorp/vault/builtin/logical/transit/key_utils.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/builtin/logical/transit/key_utils.go"
+        }
+      ],
+      "examples": [
+        "Code: 400. Errors:\n\n* cannot use key version 1: version is too old (disallowed by policy) for key app"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "builtin/logical/transit/key_utils.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/builtin/logical/transit/key_utils.go"
+      }
+    },
+    {
+      "id": "transit-invalid-ciphertext",
+      "title": "Invalid transit ciphertext",
+      "subsystem": "transit",
+      "location": "internal",
+      "patterns": [
+        "invalid ciphertext: (no prefix|wrong number of fields|could not decode base64|version number could not be decoded)",
+        "cipher: message authentication failed",
+        "invalid ciphertext length"
+      ],
+      "summary": "The ciphertext is malformed, truncated, or was encrypted with another key/context.",
+      "internal_causes": [
+        "App stores only part of the vault:vN:... string.",
+        "Derived key decrypted without the same context.",
+        "Wrong key name."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Check the ciphertext starts with vault:v<N>:"
+        },
+        {
+          "step": "Make sure context/nonce match the encrypt call"
+        },
+        {
+          "step": "Confirm the key name used for encrypt",
+          "command": "vault read <transit_mount>/keys/<name>"
+        }
+      ],
+      "references": [
+        {
+          "title": "Transit secrets engine",
+          "url": "https://developer.hashicorp.com/vault/docs/secrets/transit"
+        },
+        {
+          "title": "Source: hashicorp/vault/builtin/logical/transit/api_utils.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/builtin/logical/transit/api_utils.go"
+        }
+      ],
+      "examples": [
+        "Code: 400. Errors:\n\n* invalid ciphertext: no prefix"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "builtin/logical/transit/api_utils.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/builtin/logical/transit/api_utils.go"
+      }
+    },
+    {
+      "id": "audit-device-failed",
+      "title": "Audit device failed / not accessible",
+      "subsystem": "audit",
+      "location": "external",
+      "patterns": [
+        "audit backend failed test message",
+        "audit device not accessible at startup",
+        "file sink creation failed for path",
+        "error creating syslog sink",
+        "audit system internal error",
+        "failed to close file audit backend"
+      ],
+      "summary": "An audit device could not write. If every enabled device fails, Vault blocks requests so it never serves an unaudited request.",
+      "internal_causes": [
+        "Audit path changed in config/API without creating the directory."
+      ],
+      "external_causes": [
+        "Disk full or volume read-only.",
+        "File owned by another user (logrotate created it as root).",
+        "Socket target down / syslog daemon not running."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "List devices and options",
+          "command": "vault audit list -detailed"
+        },
+        {
+          "step": "Check disk and permissions",
+          "command": "df -h /var/log/vault && ls -la /var/log/vault"
+        },
+        {
+          "step": "Check logrotate uses copytruncate or sends SIGHUP to Vault",
+          "command": "cat /etc/logrotate.d/vault"
+        },
+        {
+          "step": "Enable a second device so one failure does not block Vault",
+          "command": "vault audit enable -path=file2 file file_path=/var/log/vault/audit2.log"
+        }
+      ],
+      "references": [
+        {
+          "title": "Audit devices",
+          "url": "https://developer.hashicorp.com/vault/docs/audit"
+        },
+        {
+          "title": "File audit device",
+          "url": "https://developer.hashicorp.com/vault/docs/audit/file"
+        },
+        {
+          "title": "Source: hashicorp/vault/audit/errors.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/audit/errors.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] audit: backend failed to log request: backend=file/ error=\"file sink creation failed for path \\\"/var/log/vault/audit.log\\\": open /var/log/vault/audit.log: permission denied\"",
+        "Code: 500. Errors:\n\n* audit system internal error"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "audit/errors.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/audit/errors.go"
+      }
+    },
+    {
+      "id": "audit-path-invalid",
+      "title": "Audit file path not allowed",
+      "subsystem": "audit",
+      "location": "internal",
+      "patterns": [
+        "audit file target may not be in the plugin directory",
+        "error resolving audit file path for audit validation",
+        "audit prefix may not contain control characters"
+      ],
+      "summary": "Vault rejected the audit device options during enable.",
+      "internal_causes": [
+        "file_path inside plugin_directory, or invalid prefix."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Choose a dedicated audit directory outside plugin_directory",
+          "command": "vault audit enable file file_path=/var/log/vault/audit.log"
+        }
+      ],
+      "references": [
+        {
+          "title": "Audit devices",
+          "url": "https://developer.hashicorp.com/vault/docs/audit"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/audit.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/audit.go"
+        }
+      ],
+      "examples": [
+        "Code: 400. Errors:\n\n* audit file target may not be in the plugin directory"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/audit.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/audit.go"
+      }
+    },
+    {
+      "id": "identity-entity-invalid",
+      "title": "Entity on token disabled or invalid",
+      "subsystem": "identity",
+      "location": "internal",
+      "patterns": [
+        "permission denied as the entity on the token is (invalid|disabled)"
+      ],
+      "summary": "The token is tied to an identity entity that is disabled or no longer exists.",
+      "internal_causes": [
+        "Operator set disabled=true on the entity.",
+        "Entity deleted/merged while tokens were still valid."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Inspect the token: policies, TTL, entity, namespace",
+          "command": "vault token lookup"
+        },
+        {
+          "step": "Read the entity",
+          "command": "vault read identity/entity/id/<entity_id>"
+        },
+        {
+          "step": "Re-enable it, or log in again to get a token for the current entity",
+          "command": "vault write identity/entity/id/<entity_id> disabled=false"
+        }
+      ],
+      "references": [
+        {
+          "title": "Identity secrets engine",
+          "url": "https://developer.hashicorp.com/vault/docs/secrets/identity"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/capabilities.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/capabilities.go"
+        }
+      ],
+      "examples": [
+        "Code: 403. Errors:\n\n* permission denied as the entity on the token is disabled"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/capabilities.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/capabilities.go"
+      }
+    },
+    {
+      "id": "identity-alias-conflict",
+      "title": "Identity alias conflict",
+      "subsystem": "identity",
+      "location": "internal",
+      "patterns": [
+        "alias with combination of mount accessor and name already exists",
+        "alias already exists for requested entity and mount accessor",
+        "alias cannot be updated as the (given )?entity already has an alias",
+        "Entity has multiple aliases on the same mount"
+      ],
+      "summary": "An entity alias for this mount accessor and name already exists, or an entity would get two aliases on one mount.",
+      "internal_causes": [
+        "Automation creating aliases twice.",
+        "Merging entities that both have aliases on the same mount."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Look up the alias by name and mount accessor",
+          "command": "vault write identity/lookup/entity alias_name=<name> alias_mount_accessor=<accessor>"
+        },
+        {
+          "step": "Merge entities and pick the alias to keep",
+          "command": "vault write identity/entity/merge from_entity_ids=<id> to_entity_id=<id> conflicting_alias_ids_to_keep=<alias_id>"
+        }
+      ],
+      "references": [
+        {
+          "title": "Identity secrets engine",
+          "url": "https://developer.hashicorp.com/vault/docs/secrets/identity"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/identity_store_aliases.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/identity_store_aliases.go"
+        }
+      ],
+      "examples": [
+        "Code: 400. Errors:\n\n* alias with combination of mount accessor and name already exists"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/identity_store_aliases.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/identity_store_aliases.go"
+      }
+    },
+    {
+      "id": "identity-duplicates",
+      "title": "Identity duplicates detected",
+      "subsystem": "identity",
+      "location": "internal",
+      "patterns": [
+        "DUPLICATES DETECTED",
+        "\\d+ (different-case )?(local )?entity (alias )?duplicates found",
+        "\\d+ group duplicates found"
+      ],
+      "summary": "On unseal Vault found duplicate entities, aliases or groups (often only case differences) from older versions.",
+      "internal_causes": [
+        "Historical bugs or case-insensitive identity created duplicates."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Collect the following log lines that list duplicates"
+        },
+        {
+          "step": "Follow the deduplication guide before upgrading or enabling strict mode"
+        }
+      ],
+      "references": [
+        {
+          "title": "Identity deduplication",
+          "url": "https://developer.hashicorp.com/vault/docs/secrets/identity/deduplication"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/identity_store_conflicts.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/identity_store_conflicts.go"
+        }
+      ],
+      "examples": [
+        "[WARN]  identity: DUPLICATES DETECTED, see following logs for details and refer to https://developer.hashicorp.com/vault/docs/upgrading/identity-deduplication for resolution."
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/identity_store_conflicts.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/identity_store_conflicts.go"
+      }
+    },
+    {
+      "id": "replication-keys-changed",
+      "title": "Encryption keys changed (replication enabled)",
+      "subsystem": "replication",
+      "location": "internal",
+      "patterns": [
+        "encryption keys have changed out from underneath us"
+      ],
+      "summary": "Enabling replication as a secondary replaced this cluster's keyring with the primary's, so the node must be unsealed again.",
+      "internal_causes": [
+        "Secondary activation, or a node lagging after activation."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Check seal, HA and storage state of this node",
+          "command": "vault status"
+        },
+        {
+          "step": "Unseal with the primary's unseal/recovery keys (auto-unseal will retry)",
+          "command": "vault operator unseal"
+        },
+        {
+          "step": "Check replication status",
+          "command": "vault read sys/replication/status"
+        }
+      ],
+      "references": [
+        {
+          "title": "Vault Enterprise replication",
+          "url": "https://developer.hashicorp.com/vault/docs/enterprise/replication"
+        },
+        {
+          "title": "Source: hashicorp/vault/vault/ha.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/vault/ha.go"
+        }
+      ],
+      "examples": [
+        "[ERROR] core: encryption keys have changed out from underneath us (possibly due to replication enabling), must be unsealed again"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "vault/ha.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/vault/ha.go"
+      }
+    },
+    {
+      "id": "replication-primary-only",
+      "title": "Operation only allowed on primary",
+      "subsystem": "replication",
+      "location": "internal",
+      "patterns": [
+        "rekeying can only be performed on the primary cluster",
+        "cannot rotate on a replication secondary",
+        "token hmac key has not been initialized or has not been replicated yet"
+      ],
+      "summary": "The operation must run on the primary, or replicated state has not arrived yet.",
+      "internal_causes": [
+        "Running rekey/rotate on a secondary.",
+        "Secondary still bootstrapping after activation."
+      ],
+      "external_causes": [],
+      "troubleshooting_steps": [
+        {
+          "step": "Check replication mode",
+          "command": "vault read sys/replication/status"
+        },
+        {
+          "step": "Run the operation on the primary cluster"
+        },
+        {
+          "step": "Stream server logs at debug level without a restart",
+          "command": "vault monitor -log-level=debug"
+        }
+      ],
+      "references": [
+        {
+          "title": "Vault Enterprise replication",
+          "url": "https://developer.hashicorp.com/vault/docs/enterprise/replication"
+        },
+        {
+          "title": "Source: hashicorp/vault/http/sys_rekey.go",
+          "url": "https://github.com/hashicorp/vault/blob/main/http/sys_rekey.go"
+        }
+      ],
+      "examples": [
+        "Code: 400. Errors:\n\n* rekeying can only be performed on the primary cluster when replication is activated"
+      ],
+      "source": {
+        "repo": "hashicorp/vault",
+        "path": "http/sys_rekey.go",
+        "url": "https://github.com/hashicorp/vault/blob/main/http/sys_rekey.go"
+      }
+    },
+    {
+      "id": "replication-connection",
+      "title": "Replication connectivity / state errors",
+      "subsystem": "replication",
+      "location": "external",
+      "patterns": [
+        "replication.*(connection refused|i/o timeout|context deadline exceeded|transport: Error while dialing|connection error)"
+      ],
+      "summary": "Replication traffic between clusters (cluster port 8201, gRPC) fails, or replication state is not yet known.",
+      "internal_causes": [
+        "primary_cluster_addr wrong or points at a load balancer that is not TCP passthrough.",
+        "Secondary activation token expired."
+      ],
+      "external_causes": [
+        "Firewall between data centers blocks 8201.",
+        "TLS-inspecting middlebox on 8201."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Check status on both clusters",
+          "command": "vault read -format=json sys/replication/status | jq .data"
+        },
+        {
+          "step": "Check the primary cluster address the secondary uses",
+          "command": "vault read sys/replication/performance/status"
+        },
+        {
+          "step": "Test the cluster port from the secondary",
+          "command": "nc -zv <primary-cluster-addr> 8201"
+        },
+        {
+          "step": "Stream server logs at debug level without a restart",
+          "command": "vault monitor -log-level=debug"
+        }
+      ],
+      "references": [
+        {
+          "title": "Vault Enterprise replication",
+          "url": "https://developer.hashicorp.com/vault/docs/enterprise/replication"
+        },
+        {
+          "title": "Replication monitoring",
+          "url": "https://developer.hashicorp.com/vault/tutorials/monitoring/monitor-replication"
+        }
+      ],
+      "examples": [
+        "[ERROR] replication: error=\"rpc error: code = Unavailable desc = connection error: desc = \\\"transport: Error while dialing dial tcp 10.1.0.11:8201: i/o timeout\\\"\""
+      ],
+      "source": {
+        "repo": null,
+        "note": "Vault Enterprise replication (gRPC over the cluster port)"
+      }
+    }
+  ]
+}
