@@ -20,6 +20,11 @@ function ResultCard({ result, rank, defaultOpen }) {
         <span className={`loc loc-${entry.location}`} title={LOCATION_HINT[entry.location]}>
           {LOCATION_LABEL[entry.location]}
         </span>
+        {entry.versions && (
+          <span className="badge version" title="This error only exists in these Vault versions">
+            v{entry.versions.since ? `≥${entry.versions.since}` : ''}{entry.versions.until ? `–${entry.versions.until}` : ''}
+          </span>
+        )}
         <h3>{entry.title}</h3>
         <span className="confidence" title="Match confidence">
           <span className="confidence-bar"><span style={{ width: `${confidence}%` }} /></span>

@@ -10,6 +10,8 @@ Everything runs in the browser. Nothing you paste leaves the page.
 ## Features
 
 - Paste one or many lines straight from `journalctl`, the Vault server log, or CLI/API error output.
+- A Vault version selector (1.15.x through the latest release) filters out matches for errors that do not
+  exist in the selected version. Entries whose error string was introduced after 1.15 show a `v≥x.y` badge.
 - Input is normalized before matching: ANSI color codes, syslog/journald prefixes, RFC 3339 timestamps,
   and hclog levels (`[ERROR]`, `level=error`) are stripped.
 - Each match card shows:
@@ -97,6 +99,7 @@ Catalog entries live in [`src/data/vault-errors.json`](src/data/vault-errors.jso
 
 | Field | Rules |
 |---|---|
+| `versions` | Optional. `{"since": "1.19"}` when the error string did not exist before that minor version, `{"until": "1.18"}` when it was removed after it. Values are minor versions (`major.minor`) from the catalog's `vault_versions` list. Entries without `versions` apply to every supported version. |
 | `id` | Unique, kebab-case, prefixed with the subsystem (`raft-join-failed`). |
 | `subsystem` | One of `seal`, `raft`, `storage`, `tls`, `ha`, `network`, `token`, `auth`, `pki`, `transit`, `audit`, `identity`, `replication`. To add a new subsystem, also add it to `SUBSYSTEMS` in the test and give it a badge color in `App.css`. |
 | `location` | `internal`, `external` or `both`. This drives the Internal / External / Both indicator. |
@@ -136,6 +139,18 @@ The catalog tests check that:
 If your new example ranks a different entry first, make your pattern more specific or narrow the competing
 entry's pattern. Then add a case to the `analyze: real-world log lines` table in `tests/matcher.test.js` if the
 scenario deserves explicit coverage.
+
+### Version data (optional)
+
+`scripts/mine_versions.py` re-checks every entry's probe string against the actual `hashicorp/vault`
+source at the latest patch of each minor release (1.15 through current) and writes `versions` ranges
+plus the top-level `vault_versions` list into the catalog. Because Vault sometimes moves an error to a
+different file in a refactor, a probe missing at the oldest version is verified against the full 1.15
+source tree before a `since` tag is written.
+
+```
+python3 scripts/mine_versions.py
+```
 
 ### Re-seeding from source (optional)
 

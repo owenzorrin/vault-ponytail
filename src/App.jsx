@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { analyze, catalog } from './matcher.js'
+import { analyze, catalog, VAULT_VERSIONS } from './matcher.js'
 import ResultCard from './components/ResultCard.jsx'
 import NoMatch from './components/NoMatch.jsx'
 
@@ -20,12 +20,13 @@ function App() {
   const [results, setResults] = useState(null)
   const [limit, setLimit] = useState(5)
   const [runId, setRunId] = useState(0)
+  const [vaultVersion, setVaultVersion] = useState(() => VAULT_VERSIONS[VAULT_VERSIONS.length - 1] || null)
   const analyzedText = useRef(null)
 
   const lineCount = useMemo(() => input.split('\n').filter((l) => l.trim()).length, [input])
 
-  const run = (text = input, n = limit, fresh = true) => {
-    setResults(analyze(text, { limit: n }))
+  const run = (text = input, n = limit, fresh = true, ver = vaultVersion) => {
+    setResults(analyze(text, { limit: n, vaultVersion: ver }))
     if (fresh || text !== analyzedText.current) setRunId((id) => id + 1)
     analyzedText.current = text
   }
@@ -71,6 +72,12 @@ function App() {
             <button className="analyze-btn" onClick={() => run()} disabled={!input.trim()}>
               Analyze
             </button>
+            <label className="limit">
+              Vault
+              <select value={vaultVersion || ''} onChange={(e) => { const ver = e.target.value; setVaultVersion(ver); if (results) run(input, limit, false, ver) }}>
+                {VAULT_VERSIONS.map((v) => <option key={v} value={v}>{v}.x</option>)}
+              </select>
+            </label>
             <label className="limit">
               Show top
               <select value={limit} onChange={(e) => { const n = Number(e.target.value); setLimit(n); if (results) run(input, n, false) }}>
