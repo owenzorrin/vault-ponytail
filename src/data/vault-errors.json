@@ -201,6 +201,7 @@
       "location": "external",
       "patterns": [
         "seal wrapper may be unreachable",
+        "fetching stored unseal keys failed\\\"?\\s*$",
         "failed to (encrypt|decrypt) test value",
         "no healthy seals",
         "seal is unhealthy",
@@ -1135,8 +1136,14 @@
           "command": "grep node_id /etc/vault.d/vault.hcl"
         },
         {
-          "step": "Stop the stray node, wipe its raft data dir and rejoin",
+          "step": "A single 'since we have a leader' message during an election is normal; act only if it repeats"
+        },
+        {
+          "step": "If the node is not in the configuration and should be, rejoin it",
           "command": "vault operator raft join https://<leader>:8200"
+        },
+        {
+          "step": "Only for a node that was removed with remove-peer or restored from an old disk: stop it, move its raft data dir aside, then rejoin"
         }
       ],
       "references": [
@@ -1310,7 +1317,14 @@
           "command": "cat /etc/vault.d/vault.hcl"
         },
         {
-          "step": "Align the seal stanza with the leader, wipe the follower's raft dir, restart and rejoin"
+          "step": "'must be unsealed': unseal the node, then retry the join",
+          "command": "vault operator unseal"
+        },
+        {
+          "step": "'must be sealed before joining': the node already unsealed against other storage; restart it with the raft storage stanza, then join"
+        },
+        {
+          "step": "'incompatible seal types': align the seal stanza with the leader, then restart and rejoin"
         }
       ],
       "references": [
@@ -2707,7 +2721,7 @@
       "troubleshooting_steps": [
         {
           "step": "Check that key and cert match",
-          "command": "diff <(openssl x509 -noout -pubkey -in vault.crt) <(openssl pkey -pubout -in vault.key) && echo match"
+          "command": "c=$(openssl x509 -noout -pubkey -in vault.crt) && k=$(openssl pkey -pubout -in vault.key) && [ \"$c\" = \"$k\" ] && echo match || echo MISMATCH-or-unreadable"
         },
         {
           "step": "Check file permissions for the vault user",
@@ -3210,12 +3224,65 @@
       }
     },
     {
+      "id": "network-listener-bind",
+      "title": "Listener cannot bind its address",
+      "subsystem": "network",
+      "location": "external",
+      "patterns": [
+        "listen tcp .*: bind: (permission denied|address already in use|cannot assign requested address)",
+        "bind: address already in use",
+        "Error initializing listener of type tcp: listen tcp"
+      ],
+      "summary": "Vault could not open its API or cluster listener socket. This is an OS-level problem with the address or port, not a Vault token or policy problem.",
+      "internal_causes": [
+        "Two listener stanzas (or api/cluster addresses) use the same port.",
+        "Listener address is an IP that does not exist on this host."
+      ],
+      "external_causes": [
+        "Another process (or an old Vault) already holds the port.",
+        "Port below 1024 without CAP_NET_BIND_SERVICE for the vault user.",
+        "SELinux/AppArmor denies the bind."
+      ],
+      "troubleshooting_steps": [
+        {
+          "step": "Find what already holds the port",
+          "command": "sudo ss -ltnp | grep -E ':8200|:8201'"
+        },
+        {
+          "step": "Check the listener address and cluster_address in the config",
+          "command": "grep -nE 'address|cluster_address' /etc/vault.d/vault.hcl"
+        },
+        {
+          "step": "For ports below 1024, grant the bind capability to the vault binary",
+          "command": "sudo setcap cap_net_bind_service=+ep $(readlink -f $(which vault))"
+        },
+        {
+          "step": "Check SELinux denials",
+          "command": "sudo ausearch -m avc -ts recent | grep vault"
+        }
+      ],
+      "references": [
+        {
+          "title": "TCP listener configuration",
+          "url": "https://developer.hashicorp.com/vault/docs/configuration/listener/tcp"
+        }
+      ],
+      "examples": [
+        "Error initializing listener of type tcp: listen tcp 0.0.0.0:443: bind: permission denied",
+        "Error initializing listener of type tcp: listen tcp 0.0.0.0:8200: bind: address already in use"
+      ],
+      "source": {
+        "repo": null,
+        "note": "Go net listener bind error surfaced by Vault at startup"
+      }
+    },
+    {
       "id": "token-permission-denied",
       "title": "Permission denied",
       "subsystem": "token",
       "location": "internal",
       "patterns": [
-        "\\bpermission denied\\b",
+        "^(?!.*(?:bind|open [^:]+|mkdir [^:]+|stat [^:]+|lstat [^:]+|chmod [^:]+|chown [^:]+): permission denied).*\\bpermission denied\\b",
         "Code: 403\\. Errors:\\s*\\*\\s*(1 error occurred:\\s*\\*\\s*)?permission denied"
       ],
       "summary": "The token's ACL policies do not allow the operation on that path, or the token is invalid/expired (Vault returns 403 in both cases).",
@@ -3460,8 +3527,12 @@
           "command": "vault read <mount>/config/<name>"
         },
         {
-          "step": "After fixing the target, force-revoke if the credential is already gone",
-          "command": "vault lease revoke -force -prefix <mount>/creds/<role>"
+          "step": "After fixing the target, retry revoking the single failed lease",
+          "command": "vault lease revoke <lease_id>"
+        },
+        {
+          "step": "Only if that credential is confirmed gone from the target system, force-revoke that one lease (removes it from Vault without contacting the target)",
+          "command": "vault lease revoke -force <lease_id>"
         }
       ],
       "references": [
@@ -4092,8 +4163,8 @@
           "command": "vault read <pki_mount>/roles/<role>"
         },
         {
-          "step": "Update the role constraints",
-          "command": "vault write <pki_mount>/roles/<role> allowed_domains=example.com allow_subdomains=true"
+          "step": "Update only the role constraints you need (patch keeps the other role settings; `vault write` would reset them)",
+          "command": "vault patch <pki_mount>/roles/<role> allowed_domains=example.com allow_subdomains=true"
         }
       ],
       "references": [

@@ -105,7 +105,7 @@ add("seal-unseal-invalid-key", "Unseal failed, invalid key", "seal", "internal",
   [R_UNSEAL, ref("vault operator rekey", f"{D}/docs/commands/operator/rekey")], ["Error unsealing: Error making API request.\n\nURL: PUT https://127.0.0.1:8200/v1/sys/unseal\nCode: 400. Errors:\n\n* Unseal failed, invalid key"],
   probe="Unseal failed, invalid key")
 add("seal-wrapper-unreachable", "Auto-unseal seal wrapper unreachable", "seal", "external",
-  [r"seal wrapper may be unreachable", r"failed to (encrypt|decrypt) test value", r"no healthy seals", r"seal is unhealthy", r"failed to decrypt health test value"],
+  [r"seal wrapper may be unreachable", r"fetching stored unseal keys failed\"?\s*$", r"failed to (encrypt|decrypt) test value", r"no healthy seals", r"seal is unhealthy", r"failed to decrypt health test value"],
   "Vault's periodic seal health check, or startup unseal, could not complete an encrypt/decrypt round trip with the auto-unseal KMS/HSM.",
   ["Seal stanza has the wrong key ID, region, endpoint or mount path."],
   ["KMS/HSM endpoint not reachable (DNS, proxy, firewall, VPC endpoint, private link).", "IAM/credentials for the seal expired or were changed.", "KMS key disabled, scheduled for deletion, or its key policy changed.", "KMS throttling or regional outage."],
@@ -238,7 +238,7 @@ add("raft-rejecting-vote", "Raft rejecting vote requests", "raft", "internal",
   "A node that is not part of the current configuration, or is behind, keeps asking for votes. Usually a removed or rejoined node that still has old raft data.",
   ["Node removed with `remove-peer` but still running with old data.", "Node restored from an old disk/snapshot, so its term/index is behind.", "Duplicate node_id across nodes."],
   [],
-  [PEERS, s("Check node_id in each node's raft stanza is unique", "grep node_id /etc/vault.d/vault.hcl"), s("Stop the stray node, wipe its raft data dir and rejoin", "vault operator raft join https://<leader>:8200")],
+  [PEERS, s("Check node_id in each node's raft stanza is unique", "grep node_id /etc/vault.d/vault.hcl"), s("A single 'since we have a leader' message during an election is normal; act only if it repeats"), s("If the node is not in the configuration and should be, rejoin it", "vault operator raft join https://<leader>:8200"), s("Only for a node that was removed with remove-peer or restored from an old disk: stop it, move its raft data dir aside, then rejoin")],
   [R_RAFTCMD], ["[WARN]  storage.raft: rejecting vote request since node is not in configuration: from=10.0.0.14:8201"],
   probe="rejecting vote request since node is not in configuration")
 add("raft-join-failed", "Raft join failed", "raft", "both",
@@ -261,7 +261,7 @@ add("raft-join-seal-state", "Node seal state wrong for raft join", "raft", "inte
   [r"node must be (sealed|unsealed) before joining", r"node must be unsealed to bootstrap", r"can't perform a seal migration while joining a raft cluster", r"incompatible seal types between raft leader"],
   "Raft join requires a specific seal state, or the follower's seal type differs from the leader's.",
   ["Joining a node that is already unsealed against other storage.", "Follower uses Shamir while the leader uses auto-unseal (or the reverse)."], [],
-  [STATUS, CONFIGCHK, s("Align the seal stanza with the leader, wipe the follower's raft dir, restart and rejoin")],
+  [STATUS, CONFIGCHK, s("'must be unsealed': unseal the node, then retry the join", "vault operator unseal"), s("'must be sealed before joining': the node already unsealed against other storage; restart it with the raft storage stanza, then join"), s("'incompatible seal types': align the seal stanza with the leader, then restart and rejoin")],
   [R_RAFT], ["Error joining the node to the Raft cluster: Code: 500. Errors:\n\n* node must be sealed before joining"],
   probe="node must be sealed before joining")
 add("raft-node-removed", "Raft node removed / stale data", "raft", "internal",
@@ -481,7 +481,7 @@ add("tls-listener-config", "Listener TLS configuration error", "tls", "internal"
   "Vault could not build the listener TLS config from the files and options in the listener stanza.",
   ["Wrong tls_cert_file / tls_key_file paths, key/cert mismatch, or PEM order (leaf first, then intermediates).", "Invalid or conflicting tls_* options."],
   ["Files not readable by the vault user (permissions, SELinux)."],
-  [s("Check that key and cert match", "diff <(openssl x509 -noout -pubkey -in vault.crt) <(openssl pkey -pubout -in vault.key) && echo match"), s("Check file permissions for the vault user", "sudo -u vault cat /etc/vault.d/tls/vault.key >/dev/null && echo readable"), DIAG],
+  [s("Check that key and cert match", "c=$(openssl x509 -noout -pubkey -in vault.crt) && k=$(openssl pkey -pubout -in vault.key) && [ \"$c\" = \"$k\" ] && echo match || echo MISMATCH-or-unreadable"), s("Check file permissions for the vault user", "sudo -u vault cat /etc/vault.d/tls/vault.key >/dev/null && echo readable"), DIAG],
   [R_TCP], ["Error initializing listener of type tcp: error loading TLS cert: open /etc/vault.d/tls/vault.crt: permission denied"],
   probe="error loading TLS cert")
 
@@ -561,8 +561,16 @@ add("network-plugin-exited", "Plugin process failed to start", "network", "both"
   probe="Unrecognized remote plugin message")
 
 # ---------------- TOKEN / LEASE ----------------
+add("network-listener-bind", "Listener cannot bind its address", "network", "external",
+  [r"listen tcp .*: bind: (permission denied|address already in use|cannot assign requested address)", r"bind: address already in use", r"Error initializing listener of type tcp: listen tcp"],
+  "Vault could not open its API or cluster listener socket. This is an OS-level problem with the address or port, not a Vault token or policy problem.",
+  ["Two listener stanzas (or api/cluster addresses) use the same port.", "Listener address is an IP that does not exist on this host."],
+  ["Another process (or an old Vault) already holds the port.", "Port below 1024 without CAP_NET_BIND_SERVICE for the vault user.", "SELinux/AppArmor denies the bind."],
+  [s("Find what already holds the port", "sudo ss -ltnp | grep -E ':8200|:8201'"), s("Check the listener address and cluster_address in the config", "grep -nE 'address|cluster_address' /etc/vault.d/vault.hcl"), s("For ports below 1024, grant the bind capability to the vault binary", "sudo setcap cap_net_bind_service=+ep $(readlink -f $(which vault))"), s("Check SELinux denials", "sudo ausearch -m avc -ts recent | grep vault")],
+  [R_TCP], ["Error initializing listener of type tcp: listen tcp 0.0.0.0:443: bind: permission denied", "Error initializing listener of type tcp: listen tcp 0.0.0.0:8200: bind: address already in use"],
+  probe="", origin="Go net listener bind error surfaced by Vault at startup")
 add("token-permission-denied", "Permission denied", "token", "internal",
-  [r"\bpermission denied\b", r"Code: 403\. Errors:\s*\*\s*(1 error occurred:\s*\*\s*)?permission denied"],
+  [r"^(?!.*(?:bind|open [^:]+|mkdir [^:]+|stat [^:]+|lstat [^:]+|chmod [^:]+|chown [^:]+): permission denied).*\bpermission denied\b", r"Code: 403\. Errors:\s*\*\s*(1 error occurred:\s*\*\s*)?permission denied"],
   "The token's ACL policies do not allow the operation on that path, or the token is invalid/expired (Vault returns 403 in both cases).",
   ["Policy lacks the capability (read/create/update/list/sudo) on the exact path (KV v2 needs data/ and metadata/).", "Token expired, revoked, or used in the wrong namespace.", "Sentinel/EGP or control group denial (Enterprise)."],
   ["Client sends the wrong token (stale VAULT_TOKEN, agent cache).", "Auth method backend changed group/role mapping."],
@@ -596,7 +604,7 @@ add("token-revocation-failed", "Lease revocation failing / irrevocable", "token"
   "Vault keeps failing to revoke leases. The secrets engine cannot delete the credential at the target system.",
   ["Secrets engine config broken (root credential rotated outside Vault)."],
   ["Target DB/cloud unreachable or root credentials lack DROP/delete permission.", "Target user already deleted manually."],
-  [s("List irrevocable leases", "vault list -format=json sys/leases/lookup/<mount>/creds/<role> | head"), s("Check the error on irrevocable leases", "vault read sys/leases/count; vault read -format=json sys/leases?type=irrevocable"), s("Test the secrets engine connection", "vault read <mount>/config/<name>"), s("After fixing the target, force-revoke if the credential is already gone", "vault lease revoke -force -prefix <mount>/creds/<role>")],
+  [s("List irrevocable leases", "vault list -format=json sys/leases/lookup/<mount>/creds/<role> | head"), s("Check the error on irrevocable leases", "vault read sys/leases/count; vault read -format=json sys/leases?type=irrevocable"), s("Test the secrets engine connection", "vault read <mount>/config/<name>"), s("After fixing the target, retry revoking the single failed lease", "vault lease revoke <lease_id>"), s("Only if that credential is confirmed gone from the target system, force-revoke that one lease (removes it from Vault without contacting the target)", "vault lease revoke -force <lease_id>")],
   [R_LEASE], ["[ERROR] expiration: failed to revoke lease: lease_id=database/creds/app/abc123 error=\"failed to revoke entry: resp: (*logical.Response)(nil) err: dial tcp 10.0.2.5:5432: i/o timeout\""],
   probe="failed to revoke lease")
 add("token-restoring-leases", "Error restoring leases on unseal", "token", "both",
@@ -691,7 +699,7 @@ add("pki-role-not-allowed", "PKI role does not allow the requested name", "pki",
   [r"(common name|subject alternate name|email address|other SAN OID|serial_number) .* not allowed by this role", r"IP Subject Alternative Names are not allowed in this role", r"role \(.*\) will not issue certificate for name"],
   "The PKI role's allowed_domains / allow_* flags do not permit the requested CN or SANs.",
   ["allowed_domains missing the domain, or allow_subdomains / allow_glob_domains / allow_bare_domains not set.", "allow_ip_sans false."], [],
-  [s("Read the role", "vault read <pki_mount>/roles/<role>"), s("Update the role constraints", "vault write <pki_mount>/roles/<role> allowed_domains=example.com allow_subdomains=true")],
+  [s("Read the role", "vault read <pki_mount>/roles/<role>"), s("Update only the role constraints you need (patch keeps the other role settings; `vault write` would reset them)", "vault patch <pki_mount>/roles/<role> allowed_domains=example.com allow_subdomains=true")],
   [R_PKI], ["Error writing data to pki/issue/web: Code: 400. Errors:\n\n* common name app.internal.example.org not allowed by this role"],
   probe="not allowed by this role")
 add("pki-issuer-missing", "PKI issuer missing or unusable", "pki", "internal",

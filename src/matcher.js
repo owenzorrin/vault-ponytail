@@ -10,8 +10,9 @@ const PREFIX_RES = [
   /^\d{4}\/\d{2}\/\d{2}\s+\d{2}:\d{2}:\d{2}(?:\.\d+)?\s*/,
   // hclog level: "[ERROR] ", "[WARN]  ", "ERROR: "
   /^\[?(?:TRACE|DEBUG|INFO|WARN|WARNING|ERROR|ERR|FATAL|PANIC|CRIT)\]?:?\s+/i,
-  // logfmt / JSON-ish level keys
+  // logfmt / JSON-ish level and timestamp keys, in either order
   /^(?:@?level|lvl)=["']?\w+["']?\s+/i,
+  /^(?:@?timestamp|time|ts)=["']?[0-9T:.\-+Z]+["']?\s+/i,
 ]
 const KV_TIMESTAMP_RE = /\b(?:@?timestamp|time|ts)=["']?[0-9T:.\-+Z]+["']?\s*/gi
 
@@ -66,6 +67,7 @@ export function tokenize(text) {
 // Turn a regex source into the literal words it would match, for fuzzy overlap.
 function patternTokens(pattern) {
   const literal = pattern
+    .replace(/\(\?<?[!=](?:[^()]|\([^()]*\))*\)/g, ' ')
     .replace(/\([^()]*\)\?/g, ' ')
     .replace(/\\[bBdDsSwW]/g, ' ')
     .replace(/\\(.)/g, '$1')
@@ -96,6 +98,18 @@ export function loggerSubsystem(line) {
   return hit ? hit[1] : null
 }
 
+// CLI/API errors span several lines ("Code: 403. Errors:" / "* permission denied"),
+// so patterns are also tried against short windows of consecutive lines.
+const WINDOW = 6
+
+function windows(lines) {
+  const out = []
+  for (let i = 0; i < lines.length - 1; i++) {
+    out.push(lines.slice(i, i + WINDOW).join(' '))
+  }
+  return out
+}
+
 const compiledCache = new WeakMap()
 
 function compile(catalog) {
@@ -113,7 +127,7 @@ function compile(catalog) {
   return compiled
 }
 
-function scoreEntry(compiledEntry, lines, inputTokens) {
+function scoreEntry(compiledEntry, lines, blocks, inputTokens) {
   const hitPatterns = new Set()
   const specificity = new Map(compiledEntry.patterns.map((p) => [p.source, p.specificity]))
   const matchedLines = new Set()
@@ -121,6 +135,7 @@ function scoreEntry(compiledEntry, lines, inputTokens) {
   let loggerAffinity = false
   let deepestPosition = 0
   let bestOverlap = 0
+  let bestOverlapTokens = 0
 
   for (const p of compiledEntry.patterns) {
     for (const line of lines) {
@@ -134,9 +149,24 @@ function scoreEntry(compiledEntry, lines, inputTokens) {
         if (loggerSubsystem(line) === compiledEntry.entry.subsystem) loggerAffinity = true
       }
     }
+    if (!hitPatterns.has(p.source)) {
+      for (const block of blocks) {
+        const m = p.re.exec(block)
+        if (m) {
+          hitPatterns.add(p.source)
+          matchedLines.add(block)
+          longestMatch = Math.max(longestMatch, m[0].length)
+          break
+        }
+      }
+    }
     if (p.tokens.length >= 2) {
       const shared = p.tokens.filter((t) => inputTokens.has(t)).length
-      bestOverlap = Math.max(bestOverlap, shared / p.tokens.length)
+      const overlap = shared / p.tokens.length
+      if (overlap > bestOverlap || (overlap === bestOverlap && p.tokens.length > bestOverlapTokens)) {
+        bestOverlap = overlap
+        bestOverlapTokens = p.tokens.length
+      }
     }
   }
 
@@ -153,7 +183,8 @@ function scoreEntry(compiledEntry, lines, inputTokens) {
       0.02 * deepestPosition +
       (loggerAffinity ? 0.06 : 0) +
       Math.min(longestMatch / 2000, 0.03)
-  } else if (bestOverlap >= 0.6) {
+  } else if (bestOverlapTokens >= 4 && bestOverlap >= 0.75) {
+    // No regex hit: only a long pattern that shares most of its words counts.
     score = 0.5 * bestOverlap
   }
 
@@ -174,9 +205,10 @@ export function analyze(text, { catalog = defaultCatalog, limit = 5, minScore = 
   const lines = normalize(text)
   if (lines.length === 0) return []
   const inputTokens = new Set(tokenize(lines.join(' ')))
+  const blocks = windows(lines)
 
   return compile(catalog)
-    .map((c) => ({ entry: c.entry, ...scoreEntry(c, lines, inputTokens) }))
+    .map((c) => ({ entry: c.entry, ...scoreEntry(c, lines, blocks, inputTokens) }))
     .filter((r) => r.score >= minScore)
     .sort((a, b) => b.score - a.score || b.regexHits - a.regexHits)
     .slice(0, limit)
