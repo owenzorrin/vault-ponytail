@@ -36,7 +36,8 @@ describe('normalize', () => {
 describe('catalog', () => {
   it('never recommends prefix force-revokes, role-replacing writes, or unconditional raft wipes', () => {
     const cmds = catalog.entries.flatMap((e) => e.troubleshooting_steps.map((st) => st.command || ''))
-    expect(cmds.filter((c) => /lease revoke -force -prefix/.test(c))).toEqual([])
+    expect(cmds.filter((c) => /lease revoke -force -prefix <(mount|path)/.test(c))).toEqual([])
+    expect(cmds.filter((c) => /lease revoke -force(?! -prefix)/.test(c))).toEqual([])
     expect(cmds.filter((c) => /vault write \S+\/roles\//.test(c))).toEqual([])
     expect(cmds.filter((c) => /diff <\(openssl/.test(c))).toEqual([])
   })

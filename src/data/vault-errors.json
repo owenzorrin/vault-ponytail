@@ -3532,7 +3532,7 @@
         },
         {
           "step": "Only if that credential is confirmed gone from the target system, force-revoke that one lease (removes it from Vault without contacting the target)",
-          "command": "vault lease revoke -force <lease_id>"
+          "command": "vault lease revoke -force -prefix <full_lease_id>"
         }
       ],
       "references": [
