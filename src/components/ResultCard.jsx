@@ -29,6 +29,12 @@ function ResultCard({ result, rank, defaultOpen }) {
 
       <p className="summary">{entry.summary}</p>
 
+      {matchedLines.length === 0 && (
+        <div className="matched">
+          <span className="label">Partial match:</span>
+          <span className="muted">no exact pattern matched; most words of a known error appear in the input.</span>
+        </div>
+      )}
       {matchedLines.length > 0 && (
         <div className="matched">
           <span className="label">Matched:</span>
@@ -58,7 +64,9 @@ function ResultCard({ result, rank, defaultOpen }) {
       <button className="toggle" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
         {open ? '▾' : '▸'} Troubleshooting checklist ({entry.troubleshooting_steps.length} steps)
       </button>
-      {open && <Checklist steps={entry.troubleshooting_steps} />}
+      <div hidden={!open}>
+        <Checklist steps={entry.troubleshooting_steps} />
+      </div>
 
       <div className="references">
         {entry.references.map((r) => (

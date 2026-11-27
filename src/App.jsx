@@ -19,10 +19,14 @@ function App() {
   const [input, setInput] = useState('')
   const [results, setResults] = useState(null)
   const [limit, setLimit] = useState(5)
+  const [runId, setRunId] = useState(0)
 
   const lineCount = useMemo(() => input.split('\n').filter((l) => l.trim()).length, [input])
 
-  const run = (text = input, n = limit) => setResults(analyze(text, { limit: n }))
+  const run = (text = input, n = limit) => {
+    setResults(analyze(text, { limit: n }))
+    setRunId((id) => id + 1)
+  }
 
   const loadSample = (entry) => {
     setInput(entry.examples[0])
@@ -100,7 +104,7 @@ function App() {
             <>
               <h2 className="panel-title">{results.length} ranked match{results.length === 1 ? '' : 'es'}</h2>
               {results.map((r, i) => (
-                <ResultCard key={r.entry.id} result={r} rank={i + 1} defaultOpen={i === 0} />
+                <ResultCard key={`${runId}-${r.entry.id}`} result={r} rank={i + 1} defaultOpen={i === 0} />
               ))}
             </>
           )}

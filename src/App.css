@@ -35,7 +35,10 @@ body {
   flex: 1; display: grid; grid-template-columns: minmax(340px, 2fr) 3fr; gap: 20px;
   padding: 20px 28px; align-items: start;
 }
-@media (max-width: 960px) { .main { grid-template-columns: 1fr; } }
+@media (max-width: 960px) {
+  .main { grid-template-columns: 1fr; }
+  .input-panel { position: static; }
+}
 
 .input-panel, .results-panel { min-width: 0; }
 .input-panel {
