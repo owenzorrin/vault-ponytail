@@ -22,6 +22,9 @@ Everything runs in the browser. Nothing you paste leaves the page.
   - likely causes inside and outside Vault
   - an ordered, checkable troubleshooting checklist with copyable commands
   - links to HashiCorp docs and to the Go source that emits the error
+- Each match card ends with a **Related articles** section: pages from the official Vault documentation
+  ranked for that error — weighted by the entry and the matched log text, with conceptual guides preferred
+  over raw API references.
 - If nothing matches, it shows generic triage: `vault status`, `sys/health`, `-log-level=debug`, audit logs,
   and storage health.
 
@@ -139,6 +142,19 @@ The catalog tests check that:
 If your new example ranks a different entry first, make your pattern more specific or narrow the competing
 entry's pattern. Then add a case to the `analyze: real-world log lines` table in `tests/matcher.test.js` if the
 scenario deserves explicit coverage.
+
+### Article index (optional)
+
+`scripts/mine_articles.py` re-indexes the official Vault documentation from a sparse clone of
+`hashicorp/web-unified-docs` into `src/data/vault-articles.json` (~870 pages: title, URL, section,
+keyword text). The in-app ranker in `src/articles.js` scores pages per match at runtime; nothing is
+fetched in the browser.
+
+```
+git clone --depth 1 --filter=blob:none --sparse https://github.com/hashicorp/web-unified-docs ~/web-docs
+cd ~/web-docs && git sparse-checkout set content/vault/v2.x/content/docs content/vault/v2.x/content/api-docs
+python3 scripts/mine_articles.py
+```
 
 ### Version data (optional)
 

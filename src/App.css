@@ -138,6 +138,13 @@ body {
 }
 .copy-btn { font-size: 11px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 4px; background: #fff; cursor: pointer; }
 
+.articles { margin-top: 12px; }
+.articles h4 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.articles ol { margin: 0; padding-left: 20px; font-size: 13px; }
+.articles li { margin-bottom: 3px; }
+.articles a { color: var(--external); text-decoration: none; }
+.articles a:hover { text-decoration: underline; }
+.article-section { margin-left: 8px; font-size: 11px; }
 .references { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 12px; font-size: 12px; }
 .references a { color: var(--external); text-decoration: none; }
 .references a:hover { text-decoration: underline; }

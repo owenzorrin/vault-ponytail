@@ -125,6 +125,38 @@ describe('version filtering', () => {
   })
 })
 
+describe('article ranking', () => {
+  it('indexes a large set of Vault docs pages', async () => {
+    const data = (await import('../src/data/vault-articles.json')).default
+    expect(data.articles.length).toBeGreaterThan(500)
+    for (const a of data.articles.slice(0, 50)) {
+      expect(a.url).toMatch(/^https:\/\/developer\.hashicorp\.com\/vault\//)
+      expect(a.title.length).toBeGreaterThan(2)
+      expect(a.keywords.length).toBeGreaterThan(10)
+    }
+  })
+
+  it('ranks seal documentation first for a seal error', async () => {
+    const { rankArticles } = await import('../src/articles.js')
+    const entry = catalog.entries.find((e) => e.id === 'seal-vault-sealed')
+    const ranked = rankArticles(entry, entry.examples[0])
+    expect(ranked.length).toBeGreaterThan(1)
+    expect(ranked[0].article.url).toContain('/vault/')
+    const titles = ranked.map((r) => r.article.title.toLowerCase()).join(' ')
+    expect(titles).toContain('seal')
+    // ranked output is ordered by descending score
+    const scores = ranked.map((r) => r.score)
+    expect([...scores].sort((x, y) => y - x)).toEqual(scores)
+  })
+
+  it('prefers conceptual guides over raw API references', async () => {
+    const { rankArticles } = await import('../src/articles.js')
+    const entry = catalog.entries.find((e) => e.id === 'raft-lost-quorum')
+    const ranked = rankArticles(entry, entry.examples[0])
+    expect(ranked[0].article.url).not.toContain('/api-docs/')
+  })
+})
+
 describe('analyze: real-world log lines', () => {
   const cases = [
     ['2024-05-01T10:00:00.000Z [ERROR] core: failed to unseal: error="fetching stored unseal keys failed: failed to decrypt keys from storage: AccessDeniedException: The ciphertext refers to a customer master key that does not exist"', 'seal-awskms'],
