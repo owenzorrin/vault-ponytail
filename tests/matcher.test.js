@@ -23,12 +23,24 @@ describe('normalize', () => {
     expect(normalizeLine('level=error time=2024-01-02T03:04:05Z msg="x"')).toBe('msg="x"')
   })
 
+  it('strips logfmt keys when time= comes before level=', () => {
+    expect(normalizeLine('time=2024-01-02T03:04:05Z level=error expiration: failed to revoke lease'))
+      .toBe('expiration: failed to revoke lease')
+  })
+
   it('drops blank lines', () => {
     expect(normalize('\n  \nfoo\n\n')).toEqual(['foo'])
   })
 })
 
 describe('catalog', () => {
+  it('never recommends prefix force-revokes, role-replacing writes, or unconditional raft wipes', () => {
+    const cmds = catalog.entries.flatMap((e) => e.troubleshooting_steps.map((st) => st.command || ''))
+    expect(cmds.filter((c) => /lease revoke -force -prefix/.test(c))).toEqual([])
+    expect(cmds.filter((c) => /vault write \S+\/roles\//.test(c))).toEqual([])
+    expect(cmds.filter((c) => /diff <\(openssl/.test(c))).toEqual([])
+  })
+
   it('has 50-100 entries with unique ids', () => {
     const ids = catalog.entries.map((e) => e.id)
     expect(ids.length).toBeGreaterThanOrEqual(50)
@@ -63,6 +75,7 @@ describe('analyze: real-world log lines', () => {
     ['[ERROR] core: error during forwarded RPC request: error="rpc error: code = Unavailable desc = connection error"', 'ha-forwarding-failed'],
     ['Get "https://vault.example.com:8200/v1/sys/health": x509: certificate signed by unknown authority', 'tls-unknown-authority'],
     ['dial tcp 10.0.0.5:8200: connect: connection refused', 'network-connection-refused'],
+    ['Error decrypting data: Error making API request.\n\nURL: PUT https://transit:8200/v1/transit/decrypt/autounseal\nCode: 403. Errors:\n\n* permission denied', 'seal-transit'],
   ]
 
   it.each(cases)('%s -> %s', (log, id) => {
@@ -87,6 +100,29 @@ describe('analyze: real-world log lines', () => {
     expect(Number.isInteger(r.confidence)).toBe(true)
     expect(r.confidence).toBeGreaterThan(0)
     expect(r.confidence).toBeLessThanOrEqual(100)
+  })
+
+  it('ranks timestamp-first logfmt lines by logger', () => {
+    expect(top('time=2024-01-02T03:04:05Z level=error expiration: failed to revoke lease: lease_id=database/creds/app/abc')[0]).toBe('token-revocation-failed')
+  })
+
+  it('ranks multi-line Transit auto-unseal denials above generic token denials', () => {
+    expect(top('Error decrypting data: Error making API request.\n\nURL: PUT https://transit:8200/v1/transit/decrypt/autounseal\nCode: 403. Errors:\n\n* permission denied')[0]).toBe('seal-transit')
+  })
+
+  it('ranks an OS-level bind permission error as a listener problem, not a token denial', () => {
+    const ids = top('Error initializing listener of type tcp: listen tcp 0.0.0.0:443: bind: permission denied', 5)
+    expect(ids[0]).toBe('network-listener-bind')
+    expect(ids).not.toContain('token-permission-denied')
+  })
+
+  it('does not treat file permission errors as token denials', () => {
+    expect(top('error loading TLS cert: open /etc/vault.d/tls/vault.crt: permission denied', 5)).not.toContain('token-permission-denied')
+  })
+
+  it('ignores healthy raft startup lines', () => {
+    expect(analyze('2024-05-01T10:00:00.000Z [INFO]  storage.raft: initial configuration: index=1 servers="[]"')).toEqual([])
+    expect(analyze('[INFO]  storage.raft: entering follower state: follower="Node at 10.0.0.1:8201 [Follower]" leader-address= leader-id=')).toEqual([])
   })
 
   it('returns no matches for unrelated text', () => {
