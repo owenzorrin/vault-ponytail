@@ -456,7 +456,7 @@
       "patterns": [
         "after (en|de)crypt operation .*(returned from vault|returned secret from vault)",
         "transit seal configuration is invalid",
-        "(transit|seal).*Code: 403.*permission denied",
+        "(\\bseal\\b|unseal).*Code: 403.*permission denied",
         "error (en|de)crypting data: Error making API request"
       ],
       "summary": "Vault could not use the remote Vault Transit key that unseals this cluster.",

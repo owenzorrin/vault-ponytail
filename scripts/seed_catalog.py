@@ -137,7 +137,7 @@ add("seal-gcpckms", "GCP Cloud KMS auto-unseal error", "seal", "external",
   [RSEAL("gcpckms", "GCP Cloud KMS")], ["Error parsing Seal configuration: 'crypto_key' not found for GCP CKMS wrapper configuration"],
   probe="error initializing GCP CKMS wrapper client")
 add("seal-transit", "Transit auto-unseal error", "seal", "external",
-  [r"after (en|de)crypt operation .*(returned from vault|returned secret from vault)", r"transit seal configuration is invalid", r"(transit|seal).*Code: 403.*permission denied", r"error (en|de)crypting data: Error making API request"],
+  [r"after (en|de)crypt operation .*(returned from vault|returned secret from vault)", r"transit seal configuration is invalid", r"(\bseal\b|unseal).*Code: 403.*permission denied", r"error (en|de)crypting data: Error making API request"],
   "Vault could not use the remote Vault Transit key that unseals this cluster.",
   ["`address`, `mount_path` or `key_name` wrong in the seal stanza."],
   ["The transit cluster is sealed, down or unreachable.", "The seal token expired or was revoked (it must be a periodic or long-lived token).", "Token policy lacks update on transit/encrypt/<key> and transit/decrypt/<key>.", "TLS CA/client cert for the transit cluster is invalid."],

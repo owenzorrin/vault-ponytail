@@ -116,6 +116,13 @@ describe('analyze: real-world log lines', () => {
     expect(top('Error decrypting data: Error making API request.\n\nURL: PUT https://transit:8200/v1/transit/decrypt/autounseal\nCode: 403. Errors:\n\n* permission denied')[0]).toBe('seal-transit')
   })
 
+  it('does not treat an ordinary denied Transit API call as an auto-unseal failure', () => {
+    const res = analyze('[INFO]  secrets.transit: key rotated: name=app\nError writing data to transit/encrypt/app: Error making API request.\n\nURL: PUT https://vault:8200/v1/transit/encrypt/app\nCode: 403. Errors:\n\n* permission denied')
+    expect(res[0].entry.id).toBe('token-permission-denied')
+    const transit = res.find((r) => r.entry.id === 'seal-transit')
+    expect(transit?.matchedPatterns ?? []).toEqual([])
+  })
+
   it('ranks an OS-level bind permission error as a listener problem, not a token denial', () => {
     const ids = top('Error initializing listener of type tcp: listen tcp 0.0.0.0:443: bind: permission denied', 5)
     expect(ids[0]).toBe('network-listener-bind')
