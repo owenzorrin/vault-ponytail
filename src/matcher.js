@@ -205,13 +205,37 @@ function scoreEntry(compiledEntry, lines, blocks, inputTokens) {
  * Analyze pasted Vault log text against the error catalog.
  * Returns matches sorted by confidence (0-100), highest first.
  */
-export function analyze(text, { catalog = defaultCatalog, limit = 5, minScore = 0.3 } = {}) {
+// Minor-granularity compare, e.g. cmpVersion("1.15", "2.0") < 0
+export function cmpVersion(a, b) {
+  const pa = a.split('.').map(Number)
+  const pb = b.split('.').map(Number)
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] || 0) - (pb[i] || 0)
+    if (d) return d
+  }
+  return 0
+}
+
+// True when an entry's version range covers the given Vault minor version.
+// Entries without a `versions` field apply to every supported version.
+export function appliesTo(entry, vaultVersion) {
+  if (!vaultVersion || !entry.versions) return true
+  const { since, until } = entry.versions
+  if (since && cmpVersion(vaultVersion, since) < 0) return false
+  if (until && cmpVersion(vaultVersion, until) > 0) return false
+  return true
+}
+
+export const VAULT_VERSIONS = defaultCatalog.vault_versions || []
+
+export function analyze(text, { catalog = defaultCatalog, limit = 5, minScore = 0.3, vaultVersion = null } = {}) {
   const lines = normalize(text)
   if (lines.length === 0) return []
   const inputTokens = new Set(tokenize(lines.join(' ')))
   const blocks = windows(lines)
 
   return compile(catalog)
+    .filter((c) => appliesTo(c.entry, vaultVersion))
     .map((c) => ({ entry: c.entry, ...scoreEntry(c, lines, blocks, inputTokens) }))
     .filter((r) => r.score >= minScore)
     .sort((a, b) => b.score - a.score || b.regexHits - a.regexHits)

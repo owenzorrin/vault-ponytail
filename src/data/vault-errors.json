@@ -1394,6 +1394,9 @@
         "repo": "hashicorp/vault",
         "path": "vault/raft.go",
         "url": "https://github.com/hashicorp/vault/blob/main/vault/raft.go"
+      },
+      "versions": {
+        "since": "1.19"
       }
     },
     {
@@ -3983,6 +3986,9 @@
         "repo": "hashicorp/vault",
         "path": "builtin/credential/ldap/backend.go",
         "url": "https://github.com/hashicorp/vault/blob/main/builtin/credential/ldap/backend.go"
+      },
+      "versions": {
+        "since": "1.16"
       }
     },
     {
@@ -4341,6 +4347,9 @@
         "repo": "hashicorp/vault",
         "path": "builtin/logical/pki/crl_util.go",
         "url": "https://github.com/hashicorp/vault/blob/main/builtin/logical/pki/crl_util.go"
+      },
+      "versions": {
+        "since": "1.19"
       }
     },
     {
@@ -4589,6 +4598,9 @@
         "repo": "hashicorp/vault",
         "path": "audit/errors.go",
         "url": "https://github.com/hashicorp/vault/blob/main/audit/errors.go"
+      },
+      "versions": {
+        "since": "1.16"
       }
     },
     {
@@ -4629,6 +4641,9 @@
         "repo": "hashicorp/vault",
         "path": "vault/audit.go",
         "url": "https://github.com/hashicorp/vault/blob/main/vault/audit.go"
+      },
+      "versions": {
+        "since": "1.20"
       }
     },
     {
@@ -4764,6 +4779,9 @@
         "repo": "hashicorp/vault",
         "path": "vault/identity_store_conflicts.go",
         "url": "https://github.com/hashicorp/vault/blob/main/vault/identity_store_conflicts.go"
+      },
+      "versions": {
+        "since": "1.19"
       }
     },
     {
@@ -4913,5 +4931,17 @@
         "note": "Vault Enterprise replication (gRPC over the cluster port)"
       }
     }
+  ],
+  "vault_versions": [
+    "1.15",
+    "1.16",
+    "1.17",
+    "1.18",
+    "1.19",
+    "1.20",
+    "1.21",
+    "2.0",
+    "2.1",
+    "2.2"
   ]
 }

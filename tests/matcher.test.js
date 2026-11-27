@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { analyze, normalize, normalizeLine, catalog } from '../src/matcher.js'
+import { analyze, normalize, normalizeLine, catalog, appliesTo, cmpVersion } from '../src/matcher.js'
 
 const SUBSYSTEMS = [
   'raft', 'storage', 'seal', 'auth', 'pki', 'transit', 'replication', 'audit',
@@ -73,6 +73,55 @@ describe('catalog', () => {
 
   it.each(catalog.entries.map((e) => [e.id, e]))('%s examples rank it first', (id, e) => {
     for (const ex of e.examples) expect(top(ex)).toEqual([id])
+  })
+})
+
+describe('version filtering', () => {
+  it('compares minor versions numerically', () => {
+    expect(cmpVersion('1.15', '2.0')).toBeLessThan(0)
+    expect(cmpVersion('1.19', '1.9')).toBeGreaterThan(0)
+    expect(cmpVersion('2.2', '2.2')).toBe(0)
+  })
+
+  it('applies entries without a versions field to every version', () => {
+    expect(appliesTo({ id: 'x' }, '1.15')).toBe(true)
+    expect(appliesTo({ id: 'x' }, '2.2')).toBe(true)
+  })
+
+  it('honours since/until ranges', () => {
+    const e = { versions: { since: '1.19' } }
+    expect(appliesTo(e, '1.15')).toBe(false)
+    expect(appliesTo(e, '1.18')).toBe(false)
+    expect(appliesTo(e, '1.19')).toBe(true)
+    expect(appliesTo(e, '2.2')).toBe(true)
+    const u = { versions: { until: '1.18' } }
+    expect(appliesTo(u, '1.18')).toBe(true)
+    expect(appliesTo(u, '1.19')).toBe(false)
+  })
+
+  it('excludes version-mismatched entries from analysis', () => {
+    const removed = catalog.entries.find((e) => e.id === 'raft-node-removed')
+    expect(removed.versions.since).toBe('1.19')
+    const text = removed.examples[0]
+    expect(analyze(text, { vaultVersion: '1.15' }).map((r) => r.entry.id)).not.toContain('raft-node-removed')
+    expect(top(text, 3)).toContain('raft-node-removed')  // default: no version filtering
+  })
+
+  it('catalog exposes the supported version list starting at 1.15', () => {
+    expect(catalog.vault_versions[0]).toBe('1.15')
+    expect(catalog.vault_versions.length).toBeGreaterThanOrEqual(8)
+  })
+
+  it('version-tagged entries have well-formed ranges within the supported list', () => {
+    const valid = new Set(catalog.vault_versions)
+    for (const e of catalog.entries) {
+      if (!e.versions) continue
+      if (e.versions.since) expect(valid.has(e.versions.since)).toBe(true)
+      if (e.versions.until) expect(valid.has(e.versions.until)).toBe(true)
+      if (e.versions.since && e.versions.until) {
+        expect(cmpVersion(e.versions.since, e.versions.until)).toBeLessThanOrEqual(0)
+      }
+    }
   })
 })
 
