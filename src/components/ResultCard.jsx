@@ -77,12 +77,17 @@ function ResultCard({ result, rank, defaultOpen }) {
 
       {articles.length > 0 && (
         <div className="articles">
-          <h4>Related articles</h4>
+          <h4>Related KB &amp; docs</h4>
           <ol>
             {articles.map(({ article }) => (
               <li key={article.url}>
+                <span className={`article-tag article-tag-${article.source}`}>
+                  {article.source === 'kb' ? 'KB' : 'Docs'}
+                </span>
                 <a href={article.url} target="_blank" rel="noreferrer">{article.title}</a>
-                <span className="muted article-section">{article.section}</span>
+                {article.source !== 'kb' && (
+                  <span className="muted article-section">{article.section}</span>
+                )}
               </li>
             ))}
           </ol>

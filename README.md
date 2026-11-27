@@ -22,9 +22,9 @@ Everything runs in the browser. Nothing you paste leaves the page.
   - likely causes inside and outside Vault
   - an ordered, checkable troubleshooting checklist with copyable commands
   - links to HashiCorp docs and to the Go source that emits the error
-- Each match card ends with a **Related articles** section: pages from the official Vault documentation
-  ranked for that error — weighted by the entry and the matched log text, with conceptual guides preferred
-  over raw API references.
+- Each match card ends with a **Related KB & docs** section: HashiCorp Vault Support KB articles
+  (hosted on IBM Support at `ibm.com/support/pages/`) and official Vault documentation pages, ranked
+  together for that error — with **KB** / **Docs** badges and conceptual guides preferred over raw API refs.
 - If nothing matches, it shows generic triage: `vault status`, `sys/health`, `-log-level=debug`, audit logs,
   and storage health.
 
@@ -145,10 +145,13 @@ scenario deserves explicit coverage.
 
 ### Article index (optional)
 
-`scripts/mine_articles.py` re-indexes the official Vault documentation from a sparse clone of
-`hashicorp/web-unified-docs` into `src/data/vault-articles.json` (~870 pages: title, URL, section,
-keyword text). The in-app ranker in `src/articles.js` scores pages per match at runtime; nothing is
-fetched in the browser.
+Related articles come from two static JSON indexes merged at runtime by `src/articles.js` (nothing is
+fetched in the browser):
+
+- `src/data/vault-kb-articles.json` — verified HashiCorp Vault Support Knowledge Base articles on
+  `ibm.com/support/pages/` (migrated from the former `support.hashicorp.com`).
+- `src/data/vault-articles.json` — official Vault documentation pages (~870 pages) generated from a
+  sparse clone of `hashicorp/web-unified-docs` by `scripts/mine_articles.py`:
 
 ```
 git clone --depth 1 --filter=blob:none --sparse https://github.com/hashicorp/web-unified-docs ~/web-docs

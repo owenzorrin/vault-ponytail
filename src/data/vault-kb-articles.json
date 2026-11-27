@@ -1,0 +1,803 @@
+{
+ "generated_from": "IBM Support Knowledge Base for HashiCorp Vault (https://www.ibm.com/support/pages/)",
+ "articles": [
+  {
+   "title": "307 response code while using authenticated metric in vault standby node",
+   "url": "https://www.ibm.com/support/pages/307-response-code-while-using-authenticated-metric-vault-standby-node",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "307 response code while using authenticated metric in vault standby node 307 response code while using authenticated metric in vault standby node Understanding Behaviour Understanding Behaviour When a user is using authenticated metrics in their Vault cluster and performance standby is either disabled or not included as part of the Vault license then the only node that can respond to sys metrics request would be the active node of the cluster. Hence, the standby nodes cannot serve authenticated read requests which is an expected behavior. For all the requests hitting the load balancer IP DNS from standby nodes will end up in a redirection loop. ... - Users will need to enable unauthenticated"
+  },
+  {
+   "title": "Accessing HCP Vault web UI returns Error 403: Not authorized",
+   "url": "https://www.ibm.com/support/pages/accessing-hcp-vault-web-ui-returns-error-403-not-authorized",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Accessing HCP Vault web UI returns Error 403: Not authorized Accessing HCP Vault web UI returns Error 403: Not authorized Accessing HCP Vault web UI returns Error 403: Not authorized Problem Introduction Cause Solution Accessing HCP Vault web UI returns Error 403: Not authorized Problem Introduction It may happen, so when you try to access HCP Vault via the web UI, you end up with an error: 403 Not authorized as in the screenshot above. This would usually happen when logging in to the HCP Vault using a token generated from the HashiCorp Cloud Platform Vault New admin token Generate token. The main reason for the error to occur would be that the token you are using had expired. Cause When you"
+  },
+  {
+   "title": "All Vault traffic, reads and writes, forwarded to active node only",
+   "url": "https://www.ibm.com/support/pages/all-vault-traffic-reads-and-writes-forwarded-active-node-only",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "All Vault traffic, reads and writes, forwarded to active node only All Vault traffic, reads and writes, forwarded to active node only Introduction Cause Solutions: Outcome Introduction In performance testing on a Vault cluster disproportionate CPU load is noted in Active vs Performance Standby nodes. Upon further investigation, all traffic is being forwarded to active node only. Nodes do not appear to be functioning as performance standby nodes as described in: https: developer.hashicorp.com vault docs enterprise performance-standby Cause - Your load balancer is not configured to forward traffic to performance standby nodes - e.g. health check is configured as: v1 sys health?standbyok=true -"
+  },
+  {
+   "title": "Audit Device Notes",
+   "url": "https://www.ibm.com/support/pages/audit-device-notes",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Audit Device Notes Audit Device Notes Problem Audit Log Time Format Audit Log List Output Audit Log Output Description Request Log Entry Example Problem This article shares some generally useful notes about Vault\u2019s Audit Device system and specifics on the Audit Device log format. Audit Log Time Format All Audit Device logging uses the RFC3339Nano time format through the Go standard library time package at a resolution of 1 second. Audit Log List Output Here is an example detailed Audit Device list output from Vault configured with multiple Audit Devices: plaintext $ vault audit list -detailed Path Type Description Replication Options ---- ---- ----------- ----------- ------- file file n a re"
+  },
+  {
+   "title": "Auto-unseal migration from Transit to AWS KMS",
+   "url": "https://www.ibm.com/support/pages/auto-unseal-migration-transit-aws-kms",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Auto-unseal migration from Transit to AWS KMS Auto-unseal migration from Transit to AWS KMS Introduction Prerequisites Use Case Introduction There are scenarios on which the sealing mechanism must be migrated from TRANSIT to a different KMS cloud provider or SHAMIR keys. Hashicorp Vault is offering multiple KMS cloud option. This article is covering the seal migration from TRANSIT to AWS KMS. Prerequisites - Working AWS KMS with sufficient rights & verified access using aws-cli tools. Use Case Migrating may be performed directly from a transit auto-unseal mechanism to an awskms auto-un seal mechanism, without an intermediate Shamir seal stage. Please bare in mind that the success of performi"
+  },
+  {
+   "title": "Auto-unseal using GCP Cloud KMS",
+   "url": "https://www.ibm.com/support/pages/auto-unseal-using-gcp-cloud-kms",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Auto-unseal using GCP Cloud KMS Auto-unseal using GCP Cloud KMS Problem Auto-unseal using GCP Cloud KMS Problem Auto Unseal was developed to aid in reducing the operational complexity of keeping the unseal key secure. Here is a sample GCP KMS stanza from Vault configuration file: seal gcpckms { credentials = Users owen vault gcp cluster A owen-gcp-seal-test-47cdc5f058c6.json project = hc-65bxxxxx region = global key ring = key-ring-1 crypto key = key-test-1 } The gcpkms parameters are required for using GCP Cloud KMS seal. This article will show where and how to retrieve these parameters from the GCP console. All the related gcpckms parameters. 1. project: Create a new project or use existin"
+  },
+  {
+   "title": "AWS CloudHSM pkcs11: 0x6: CKR_FUNCTION_FAILED",
+   "url": "https://www.ibm.com/support/pages/aws-cloudhsm-pkcs11-0x6-ckrfunctionfailed",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "AWS CloudHSM pkcs11: 0x6: CKR FUNCTION FAILED AWS CloudHSM pkcs11: 0x6: CKR FUNCTION FAILED AWS CloudHSM pkcs11: 0x6: CKR FUNCTION FAILED Problem Resolution and Workaround AWS CloudHSM pkcs11: 0x6: CKR FUNCTION FAILED Problem This article describes a scenario where using AWS CloudHSM with Hashicorp Vault results in repeated errors 0x6: CKR FUNCTION FAILED . These errors occur when using Bring Your Own Key BYOK with the following Vault components: Vault HSM PKCS11 Auto-Unseal, Transit secrets engine or PKI secrets engine. For example, when using transit secrets engine: plaintext vault write transit encrypt oaep-kcs plaintext= $ echo abc123 base64 ; The output shows: plaintext Error writing da"
+  },
+  {
+   "title": "AWS KMS Auto-Unseal fails with EC2 IMDS timeout after upgrading to Vault 2.2.x",
+   "url": "https://www.ibm.com/support/pages/aws-kms-auto-unseal-fails-ec2-imds-timeout-after-upgrading-vault-22x",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "AWS KMS Auto-Unseal fails with EC2 IMDS timeout after upgrading to Vault 2.2.x AWS KMS Auto-Unseal fails with EC2 IMDS timeout after upgrading to Vault 2.2.x AWS KMS Auto-Unseal fails with EC2 IMDS timeout after upgrading to Vault 2.2.x Problem Symptom Cause Resolving The Problem Method 1: Specify the Credentials File and Profile in Vault Configuration Recommended AWS KMS Auto-Unseal fails with EC2 IMDS timeout after upgrading to Vault 2.2.x Problem After upgrading Vault to version 2.2.0 or later, Vault fails to initialize or unseal when using an awskms seal configuration that relies on the default AWS shared credentials file .aws credentials . Symptom When starting Vault outside of an AWS E"
+  },
+  {
+   "title": "AWS KMS to AWS KMS Seal Migration",
+   "url": "https://www.ibm.com/support/pages/aws-kms-aws-kms-seal-migration",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "AWS KMS to AWS KMS Seal Migration AWS KMS to AWS KMS Seal Migration Introduction Explanation Introduction Vault has a plethora of seal types that can be used for sealing and unsealing Vault. One of these is AWS KMS. HashiCorp has plenty of documentation regarding the AWS KMS seal, some of which are below. - Official awskms seal documentation. - Tutorial implementing awskms auto-unseal. Additionally, Vault provides a mechanism to migrate your Vault instance from one seal type to another. This has extensive documentation found below: - Official seal migration documentation. - Seal migration KB article This article will focus on circumventing the documented limitation of migrating from one awsk"
+  },
+  {
+   "title": "Best Practices for AWS Cloud auto-join",
+   "url": "https://www.ibm.com/support/pages/best-practices-aws-cloud-auto-join",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Best Practices for AWS Cloud auto-join Best Practices for AWS Cloud auto-join Introduction Best Practices Introduction Within the Vault configuration file, the retry join stanza defines a set of connection details for another node in the cluster, which is used to help nodes locate a leader in order to join a cluster. When an auto join value is provided, Vault will automatically attempt to discover and resolve potential Raft leader addresses using go-discover for a cloud auto join configuration. This article will help describe best practices in configuring auto join with AWS. Best Practices - Review Vault architecture to declare the appropriate auto join scheme - http or https - The auto join"
+  },
+  {
+   "title": "Best Practices - AWS NLB configuration for Vault",
+   "url": "https://www.ibm.com/support/pages/best-practices-aws-nlb-configuration-vault",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Best Practices - AWS NLB configuration for Vault Best Practices - AWS NLB configuration for Vault The NLB Target group The load balancer Vault configuration The NLB The Network Load Balancer in AWS is the preferred method of load balancing in AWS due to the ability to pass through TLS connections so that the Vault nodes can handle TLS termination. The usage of Application Load Balancer ALB is discouraged due to TLS terminating at the load balancer level and Vault will need end to end TLS connections. An example, without the certificate: Target group Configuration of the target groups is important. The load balancer will need to know where to send requests to Vault. The target group should pe"
+  },
+  {
+   "title": "Certificate signed by unknown authority - How to troubleshoot for common scenarios",
+   "url": "https://www.ibm.com/support/pages/certificate-signed-unknown-authority-how-troubleshoot-common-scenarios",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Certificate signed by unknown authority - How to troubleshoot for common scenarios Certificate signed by unknown authority - How to troubleshoot for common scenarios Problem Prerequisites if applicable Solutions Scenario 1: Scenario 2: Problem There are many instances where you can encounter the following error: X.509 Certificate Signed by Unknown Authority It is important to verify and check where this error is observed, and in what scenario. In the Solutions section below, we will present some of the most common scenarios involving this issue and the options to resolve them. Prerequisites if applicable The prerequisite for this article is there is a TLS connection for the Vault Listener, a"
+  },
+  {
+   "title": "CLI / API snapshot save fails with message: \"Error taking snapshot: incomplete snapshot, unable to read SHA256SUMS.sealed file\"",
+   "url": "https://www.ibm.com/support/pages/cli-api-snapshot-save-fails-message-error-taking-snapshot-incomplete-snapshot-unable-read-sha256sumssealed-file",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "CLI API snapshot save fails with message: Error taking snapshot: incomplete snapshot, unable to read SHA256SUMS.sealed file CLI API snapshot save fails with message: Error taking snapshot: incomplete snapshot, unable to read SHA256SUMS.sealed file Introduction Cause Solution Outcome Introduction Attempting to manually create a Vault snapshot when using the Raft Integrated Storage backend may fail with the message Error taking snapshot: incomplete snapshot, unable to read SHA256SUMS.sealed file . Cause This issue occurs when the request to create a snapshot is handled by a standby or Performance Standby node in the Vault cluster. At present when a snapshot request is received by a node which "
+  },
+  {
+   "title": "Configuring Raft Auto\u2011Join for Vault on Alibaba Cloud (Aliyun)",
+   "url": "https://www.ibm.com/support/pages/configuring-raft-auto%E2%80%91join-vault-alibaba-cloud-aliyun",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Configuring Raft Auto\u2011Join for Vault on Alibaba Cloud Aliyun Configuring Raft Auto\u2011Join for Vault on Alibaba Cloud Aliyun Auto\u2011Join Overview Auto\u2011Join Overview Vault uses the Aliyun go\u2011discover provider for ECS\u2011based node discovery. Auto\u2011join parameters are passed as a list of key=value tuples within the ... key secret: The Aliyun access key secret to use Required RAM permission:"
+  },
+  {
+   "title": "Configuring Vault Audit Log Devices in Kubernetes: File, Stdout, and Socket Options with Helm Chart Settings",
+   "url": "https://www.ibm.com/support/pages/configuring-vault-audit-log-devices-kubernetes-file-stdout-and-socket-options-helm-chart-settings",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Configuring Vault Audit Log Devices in Kubernetes: File, Stdout, and Socket Options with Helm Chart Settings Configuring Vault Audit Log Devices in Kubernetes: File, Stdout, and Socket Options with Helm Chart Settings Introduction File Option with auditStorage annotation File Option with stdout Socket Option Syslog Option Introduction In this article we are going to walk through the limitations and options of configuring Audit Log when running Vault in Kubernetes Environment. Properly Configure Vault Audit Devices is an important task as it allows you to monitor the activities performed in your Vault environment, in addition satisfying the compliance requirements for many organizations. File"
+  },
+  {
+   "title": "Configuring Vault LDAP Authentication with Identity Groups and Namespace Policy Mapping",
+   "url": "https://www.ibm.com/support/pages/configuring-vault-ldap-authentication-identity-groups-and-namespace-policy-mapping",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Configuring Vault LDAP Authentication with Identity Groups and Namespace Policy Mapping Configuring Vault LDAP Authentication with Identity Groups and Namespace Policy Mapping Vault LDAP Auth Configuration Vault Login Using LDAP HashiCorp Vault ... This guide walks through configuring Vault to authenticate users from an OpenLDAP directory, associate external LDAP groups with Vault identity groups, and apply namespace-specific policies through group aliasing and internal group mapping. ... Vault LDAP Auth Configuration Enable Vault LDAP auth method and configure the connection in the Root Namespace vault auth enable ldap vault write auth ldap config url= ldap: localhost userdn= ou=users,dc=ex"
+  },
+  {
+   "title": "The CRL is not updated immediately after a Certificate Revoke",
+   "url": "https://www.ibm.com/support/pages/crl-not-updated-immediately-after-certificate-revoke",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "The CRL is not updated immediately after a Certificate Revoke The CRL is not updated immediately after a Certificate Revoke The CRL is not updated immediately after a Certificate Revoke Problem Prerequisites if applicable Cause Solutions: The CRL is not updated immediately after a Certificate Revoke Problem When a certificate is revoked, either through manual revocation or through expiration, the CRL Certificate Revocation List is not updated immediately. Prerequisites if applicable - Vault PKI Secrets Engine - Certificate Revocation - Certificate Revocation List CRL Cause - This is due to Auto Rebuild being enabled. As per Vault documentation: Enabling automatic rebuilding of CRLs disables "
+  },
+  {
+   "title": "Data inconsistency issues on a Performance Standby.",
+   "url": "https://www.ibm.com/support/pages/data-inconsistency-issues-performance-standby",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Data inconsistency issues on a Performance Standby. Data inconsistency issues on a Performance Standby. - Logging - In your Vault Operational Logs there may be a lot of the following on the performance standby. This occurs when the cluster is under heavy writes and communication between the nodes is strained: ERROR core: error during forwarded RPC request: error= rpc error: code = Canceled desc = context canceled ERROR core: forward request error: error= error during forwarding RPC request - - In your audit logs it is possible to also see how many requests are being made per application and how often."
+  },
+  {
+   "title": "DR Replication Issues",
+   "url": "https://www.ibm.com/support/pages/dr-replication-issues",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "DR Replication Issues DR Replication Issues Problem Problem At some point during Vault operation with DR replication you may encounter an issue where your Vault clusters, that being the DR primary and the DR secondary clusters, are no longer in sync with one another. Replication is monitored via the use of the sys replication status endpoint which returns various parameters to check. When discussing the issue of synchronization between DR primary and secondary clusters, the chief among these parameters is the state parameter of the DR secondary. This parameter dictates what the state of synchronization between the 2 clusters is. The value of stream-wals indicates normal streaming. This is th"
+  },
+  {
+   "title": "Effect on Vault Auto-unseal when Azure Key Vault has Expired Key Versions",
+   "url": "https://www.ibm.com/support/pages/effect-vault-auto-unseal-when-azure-key-vault-has-expired-key-versions",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Effect on Vault Auto-unseal when Azure Key Vault has Expired Key Versions Effect on Vault Auto-unseal when Azure Key Vault has Expired Key Versions Problem Effect on Vault Auto-unseal when Azure Key Vault has Expired Key Versions Problem Introduction: There is some clarity needed on the effect of Expired Key Versions in Azure Key Vault on Vault s ability to be Un-sealed. Use Case: In case a customer needs to expire a key version in Azure Key Vault and Set Rotation Policy to auto-rotation. We will see the following effects: 1. When AKV Key version expires - Effects on Auto-Unseal 2. When AKV Key version expires - Effects on Vaults functionality when Seal-Wrapping is enabled. 2 3. When AKV Key"
+  },
+  {
+   "title": "Error Unwrapping Secondary Token x509 Certificate signed by Unknown Authority",
+   "url": "https://www.ibm.com/support/pages/error-unwrapping-secondary-token-x509-certificate-signed-unknown-authority",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Error Unwrapping Secondary Token x509 Certificate signed by Unknown Authority Error Unwrapping Secondary Token x509 Certificate signed by Unknown Authority Introduction Cause Solutions: Additional Information Introduction The following error is received upon attempting to setup DR Secondary replication: vaultdr2: vault write sys replication dr secondary enable token= zyHibJ......-- error --Error writing data to sys replication dr secondary enable: Error making API request.URL: PUT https: vaultdr2 server.com:8200 v1 sys replication dr secondary enableCode: 500. Errors: 1 error occurred: error unwrapping secondary token: Post https: 10.10.10.110:8200 v1 sys wrapping unwrap : x509: certificate "
+  },
+  {
+   "title": "Error while joining the node when multi-seal HA is enabled in vault",
+   "url": "https://www.ibm.com/support/pages/error-while-joining-node-when-multi-seal-ha-enabled-vault",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Error while joining the node when multi-seal HA is enabled in vault : Error while joining the node when multi-seal HA is enabled in vault : Issue: Solution: systemctl stop vault Issue: Error joining the node as a standby node to the cluster where multi-seal is enabled. auto error loading configuration from etc vault.d config.hcl: cannot have more than one non-disabled seal Content of the config file from the leader node auto enable multiseal = true seal transit { address = https: Transit server address :8200 token = Transit engine token key name = Transit\u201d-key mount path = transit name = transit-1 priority = 1 } seal transit { address = https: Transit2 server address :8200 token = Transit to"
+  },
+  {
+   "title": "Force revoke leases by prefix",
+   "url": "https://www.ibm.com/support/pages/force-revoke-leases-prefix",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Force revoke leases by prefix Force revoke leases by prefix Scenario Solution Scenario You are attempting to disable an unnecessary authentication backend named aws-ec2 when you encounter an error: plaintext $ vault auth disable aws-ec2 Error: Error making API request. URL: DELETE https: vault.example.com v1 sys auth aws-ec2 Code: 400. Errors: failed to revoke auth aws-ec2 login 004c7a3e98ee3c9f3ef83651434a0891a81fb7bb 1 1 : failed to revoke token: failed to revoke entry: failed to revoke database creds mariadb-readonly 03167e19a1ef25c482728a3f3c21cf739d2b6a69 1 1 : failed to revoke entry: resp: logical.Response nil err:error during revoke: could not find role with name mariadb-readonly The "
+  },
+  {
+   "title": "Getting broken pipe error when migrating Vault storage backend from Consul to Raft/Integrated Storage",
+   "url": "https://www.ibm.com/support/pages/getting-broken-pipe-error-when-migrating-vault-storage-backend-consul-raftintegrated-storage",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Getting broken pipe error when migrating Vault storage backend from Consul to Raft Integrated Storage Getting broken pipe error when migrating Vault storage backend from Consul to Raft Integrated Storage Problem Prerequisites Cause Solutions: Additional Information Problem The following Error is displayed in Vault Operational Logs when migrating from Consul to Raft Storage Backend for your Vault environment: storage migration check error: error= Get https: x.x.x.x:8501 v1 kv vault core migration : write tcp x.x.x.x:xxxxx- x.x.x.x:8501: write: broken pipe Prerequisites - You are performing storage migration from Consul to Raft. - You are observing the error broken pipe in Vault Operational lo"
+  },
+  {
+   "title": "Getting warning \"lease count exceeds warning lease threshold\" in Vault Operational Logs",
+   "url": "https://www.ibm.com/support/pages/getting-warning-lease-count-exceeds-warning-lease-threshold-vault-operational-logs",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Getting warning lease count exceeds warning lease threshold in Vault Operational Logs Getting warning lease count exceeds warning lease threshold in Vault Operational Logs - Start monitoring the leases using telemetry and see how leases are being generated ... - Setting lease count quotas for every auth method is always a good idea to protect Vault as any applications can be accidentally generating a lot of leases."
+  },
+  {
+   "title": "HA Auto-Unseal with dual transit clusters in air-gapped vault environments with secure token injection",
+   "url": "https://www.ibm.com/support/pages/ha-auto-unseal-dual-transit-clusters-air-gapped-vault-environments-secure-token-injection",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "HA Auto-Unseal with dual transit clusters in air-gapped vault environments with secure token injection HA Auto-Unseal with dual transit clusters in air-gapped vault environments with secure token injection Problem Introduction: Need for dual HA transit clusters: Detailed configuration steps: Auto-Unseal using Transit Cluster A Auto-Unseal using Transit Cluster B Problem Introduction: While cloud KMS solutions are popular, multi-cloud flexibility is necessary for environments that demand more control. However, in a strict air-gapped environment, using Vault s Transit secret engine for auto-unseal offers a powerful alternative. This article delves into configuring Vault auto-unseal leveraging "
+  },
+  {
+   "title": "HashiCorp Vault AWS auto_join Failure in vault 1.19.x and 1.20.x",
+   "url": "https://www.ibm.com/support/pages/hashicorp-vault-aws-autojoin-failure-vault-119x-and-120x",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "HashiCorp Vault AWS auto join Failure in vault 1.19.x and 1.20.x HashiCorp Vault AWS auto join Failure in vault 1.19.x and 1.20.x HashiCorp Vault AWS auto join Failure in vault 1.19.x and 1.20.x Issue Summary: Symptoms: Cause: Affected Versions: Fixed Version: Impact: Workarounds: HashiCorp Vault AWS auto join Failure in vault 1.19.x and 1.20.x Issue Summary: Vault versions 1.19.6 and above in the 1.19.x series, and all versions in 1.20.x, encounter failures using AWS cloud auto join if the region does not support AWS EC2 dual stack API endpoints, or if network controls prevent access to these endpoints. This impacts both fresh installations and upgrades for Vault clusters leveraging the aut"
+  },
+  {
+   "title": "HCP Vault Dedicated Lease Count Quotas",
+   "url": "https://www.ibm.com/support/pages/hcp-vault-dedicated-lease-count-quotas",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "HCP Vault Dedicated Lease Count Quotas HCP Vault Dedicated Lease Count Quotas Introduction Cause Solution Create or update a lease count quota Get a lease count quota List lease count quotas Delete a lease count quota Introduction This article provides details about HCP Vault Dedicated s lease count quotas and how to address a common error associated with them. Vault returns a 429 - Too Many Requests response when users try to authenticate: Error making API request. URL: PUT https: 127.0.0.1:61555 v1 auth userpass login foo Code: 429. Errors: 1 error occurred: request path auth userpass login foo : lease count quota exceeded Cause Vault returns a 429 - Too Many Requests response if a new lea"
+  },
+  {
+   "title": "How to check cloud auto_join discovers correct nodes in AWS using awscli.",
+   "url": "https://www.ibm.com/support/pages/how-check-cloud-autojoin-discovers-correct-nodes-aws-using-awscli",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "How to check cloud auto join discovers correct nodes in AWS using awscli. How to check cloud auto join discovers correct nodes in AWS using awscli. Prerequisites Cause Prerequisites - vault version 1.6.0 and higher, cloud auto join is introduced in this version.. - Setting up Vault cluster in AWS using Raft auto join for discovery of nodes. - awscli running on aws nodes, which vault nodes ec2 instances have describe instance permissions. - 3 EC2 instances are provisioned with correct tags in correct aws region. - One of the vault node is initialized and other 2 nodes should join to this vault node forming a 3 node vault cluster using Integrated storage. Cause - Vault uses auto join which tak"
+  },
+  {
+   "title": "How-to configure cross namespace access in Vault Enterprise",
+   "url": "https://www.ibm.com/support/pages/how-configure-cross-namespace-access-vault-enterprise",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "How-to configure cross namespace access in Vault Enterprise How-to configure cross namespace access in Vault Enterprise Use Case Kubernetes authentication: Create new namespaces - they are peers Create an entity Use Case ... The main point of difference to consider when configuring cross namespace access is the relationship of the name of the entity or group alias we create prior to authentication and the name supplied by the authentication method - these typically must match, however there can be additional configurations required to be aware of. ... Kubernetes authentication: The main set of commands are the same when compared to the lab-setup.sh script, however we must ensure both the Kub"
+  },
+  {
+   "title": "How-to Configure Vault DR Replication with Helm and Kubernetes Ingress",
+   "url": "https://www.ibm.com/support/pages/how-configure-vault-dr-replication-helm-and-kubernetes-ingress",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "How-to Configure Vault DR Replication with Helm and Kubernetes Ingress How-to Configure Vault DR Replication with Helm and Kubernetes Ingress Many Kubernetes-based Vault deployments rely on ingress controllers configured only for port 8200 the Vault API port . Vault DR replication, however, also requires port 8201 for cluster-to-cluster communication. Without proper forwarding of port 8201, DR"
+  },
+  {
+   "title": "How-to create an entity alias for an Approle role",
+   "url": "https://www.ibm.com/support/pages/how-create-entity-alias-approle-role",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "How-to create an entity alias for an Approle role How-to create an entity alias for an Approle role Expected Outcome Use Case Procedure Expected Outcome A configured Approle entity with inherited group policies. Use Case Applying the concepts in the Secure Multi-Tenancy with Namespaces tutorial, implementing Approle authentication in lieu of userpass. Procedure Assuming you have created the same namespaces and policies in the above referenced tutorial, do the following picking up from the Setup entities and groups step. Enable approle auth method: vault auth enable -namespace=education approle Create role: vault write -f -namespace=education auth approle role my-role Get role ID: vault read "
+  },
+  {
+   "title": "How-to Migrate Between Auto-Unseal Methods Using Vault Seal High Availability (HA)",
+   "url": "https://www.ibm.com/support/pages/how-migrate-between-auto-unseal-methods-using-vault-seal-high-availability-ha",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "How-to Migrate Between Auto-Unseal Methods Using Vault Seal High Availability HA How-to Migrate Between Auto-Unseal Methods Using Vault Seal High Availability HA Summary Objective Environment Steps Procedure Summary Vault 1.16.0 introduced Seal High Availability Seal HA , which enables seamless migration from one auto-unseal method to another without requiring a Vault service restart. Objective Successful migration from one auto-unseal mechanism to another using Seal HA, with zero downtime and no Vault service restarts on the active node. This guide applies to Vault clusters where an administrator needs to switch from one seal mechanism e.g., Transit to another e.g., AWS KMS without downtime"
+  },
+  {
+   "title": "How to Migrate Vault DR Cluster from Kubernetes On-Prem to AWS Using a Raft Snapshot",
+   "url": "https://www.ibm.com/support/pages/how-migrate-vault-dr-cluster-kubernetes-prem-aws-using-raft-snapshot",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "How to Migrate Vault DR Cluster from Kubernetes On-Prem to AWS Using a Raft Snapshot How to Migrate Vault DR Cluster from Kubernetes On-Prem to AWS Using a Raft Snapshot Troubleshooting: CLI Connection Errors Error Message Observed Cause Fix Run this command --- --- --- http: server gave HTTP response to HTTPS client CLI defaults to HTTPS, but Vault listener uses HTTP no TLS . export VAULT ADDR= http: 127.0.0.1:8200 dial tcp 127.0.0.1:8200: connect: connection refused Vault server not running or not started yet. sudo systemctl start vault Code: 503. Errors: Vault is sealed Server initialized but locked. Proceed with unseal steps above."
+  },
+  {
+   "title": "How-to migrate Vault's storage backend to a new Vault cluster in Kubernetes",
+   "url": "https://www.ibm.com/support/pages/how-migrate-vaults-storage-backend-new-vault-cluster-kubernetes",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "How-to migrate Vault s storage backend to a new Vault cluster in Kubernetes How-to migrate Vault s storage backend to a new Vault cluster in Kubernetes Summary Prerequisites Procedure Summary Introduction If you are operating a Vault cluster with a storage backend such as AWS DynamoDB using a traditional platform such as bare metal or VM s and wish to migrate both the Vault cluster and Vault backend storage to Integrated Storage Raft on a new Vault cluster on Kubernetes, this guide can be used as a reference. Prerequisites - After the storage migration process has been completed you will need access to relocate files within the Kubernetes Persistent Volume Claim PVC used by the Vault pod. - "
+  },
+  {
+   "title": "How to recover from permanently lost quorum while using Raft integrated storage with Vault.",
+   "url": "https://www.ibm.com/support/pages/how-recover-permanently-lost-quorum-while-using-raft-integrated-storage-vault",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "How to recover from permanently lost quorum while using Raft integrated storage with Vault. How to recover from permanently lost quorum while using Raft integrated storage with Vault. Problem DISCLAIMER: This article should be used only when the quorum in the Raft cluster is lost PERMANENTLY, and there is no way to recover enough nodes to reach quorum elect a leader . Introduction : Use Case : Problem DISCLAIMER: This article should be used only when the quorum in the Raft cluster is lost PERMANENTLY, and there is no way to recover enough nodes to reach quorum elect a leader . Introduction : The integrated storage option aka Raft was introduced with Vault 1.4, more and more practitioners are"
+  },
+  {
+   "title": "How-to restore a snapshot to a Vault cluster running on Kubernetes",
+   "url": "https://www.ibm.com/support/pages/how-restore-snapshot-vault-cluster-running-kubernetes",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "How-to restore a snapshot to a Vault cluster running on Kubernetes How-to restore a snapshot to a Vault cluster running on Kubernetes Procedure - The Vault instance pod must be the active leader node. ... - If targeting the second scenario of restoring a snapshot to a healthy Vault cluster and it has been confirmed all replicas are in sync Raft Applied Index value of vault status matches, or is very close and communication between each replica is functioning Last Echo time in the output of vault operator members is current for all replicas there is no need to scale down the replica count - restoring a snapshot to the active leader Vault instance will result in the snapshot being distributed "
+  },
+  {
+   "title": "How-to safely restart a Vault cluster running on Kubernetes",
+   "url": "https://www.ibm.com/support/pages/how-safely-restart-vault-cluster-running-kubernetes",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "How-to safely restart a Vault cluster running on Kubernetes How-to safely restart a Vault cluster running on Kubernetes Procedure Detailed Steps - This guide is written with Vault clusters using the Integrated Storage raft backend storage type in mind. - Vault will lose quorum and be unable to service client requests for a longer period of time if the kubectl rollout restart command is used. This can potentially result in a peers.json recovery being required. ... - A period of downtime interruption to client requests is unavoidable as a leadership election must take place, during which Vault is unable to service client requests. - Following the process outlined in this document will result i"
+  },
+  {
+   "title": "How to Setup Vault with Highly available Unseal mechanisms? - Seal HA",
+   "url": "https://www.ibm.com/support/pages/how-setup-vault-highly-available-unseal-mechanisms-seal-ha",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "How to Setup Vault with Highly available Unseal mechanisms? - Seal HA How to Setup Vault with Highly available Unseal mechanisms? - Seal HA Introduction: Prerequisites: Use Case: Steps: Introduction: To provide resiliency against a seal service mechanism outage, Seal High Availability allows you to specify a minimum of two auto-seals and a maximum of three. Additional seals must be configured in Vault s server configuration file to use Seal HA. Prerequisites: 1. Vault Enterprise version 1.15.0+ent or higher. 2. AWS KMS keys with appropriate permission. Use Case: Two autounseal mechanisms are to be used in the Vault configuration. This could be a combination of transit HSM with Cloud Service "
+  },
+  {
+   "title": "How to Use Manually Created Entity When Logging into Vault",
+   "url": "https://www.ibm.com/support/pages/how-use-manually-created-entity-when-logging-vault",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "How to Use Manually Created Entity When Logging into Vault How to Use Manually Created Entity When Logging into Vault Summary Introduction Expected Outcome Procedure Step 1: Create entity Step 2: Create alias Summary How to Use Manually Created Entity When Logging into Vault Introduction When a client authenticates via any credential backend except the Token backend , Vault creates a new entity. It attaches a new alias to it if a corresponding entity does not already exist. The newly created entity will be have a unique generated name following the template entity . If you would want a custom named entity to be used when logging in to vault, the entity with desired named with an alias mapped"
+  },
+  {
+   "title": "HSM PKCS11 Setup Issues & Errors",
+   "url": "https://www.ibm.com/support/pages/hsm-pkcs11-setup-issues-errors",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "HSM PKCS11 Setup Issues & Errors HSM PKCS11 Setup Issues & Errors Problem First Common HSM Issue Second Common HSM Issue Solutions Problem There are two symptoms that are common when HSM s integrations are not complete, not correctly configured or otherwise have changed on the HSM, Hardware or Operating System since the time of its previous working state. First Common HSM Issue One scenario is when Vault is emitting PKCS 11 library: pkcs11: errors in its operational logs with a hex-decimal value such as: 0x5: CKR GENERAL ERROR ; these codes may be reviewed further in the specification of the standard library: PKCS 11 Cryptographic Token Interface Base Specification In the case of CKR GENERAL"
+  },
+  {
+   "title": "Identifying Tokens, Leases and Entities",
+   "url": "https://www.ibm.com/support/pages/identifying-tokens-leases-and-entities",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Identifying Tokens, Leases and Entities Identifying Tokens, Leases and Entities Listing Leases Accessors from authentication methods, such as LDAP in this example, are distinguishable by the different values returned. $ vault list auth token accessorsKeys----dTjIKvNgxF5OhAipEE9dnsU2$ vault token lookup -accessor dTjIKvNgxF5OhAipEE9dnsU2Key Value--- -----accessor dTjIKvNgxF5OhAipEE9dnsU2creation time 1727124616creation ttl 768hdisplay name ldap-user01entity id 8e423680-fd16-3762-8768-62c554d9a733expire time 2024-10-25T20:50:16.736955919Zexplicit max ttl 0sid ... Listing Leases The sys leases lookup endpoint returns all of the leases currently stored in Vault. When this command is run at the r"
+  },
+  {
+   "title": "Intermittent failures in Kubernetes Auth method",
+   "url": "https://www.ibm.com/support/pages/intermittent-failures-kubernetes-auth-method",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Intermittent failures in Kubernetes Auth method Intermittent failures in Kubernetes Auth method Introduction Prerequisites if applicable Cause Solutions: Outcome Introduction This article documents a workaround for a known defect in Vault 1.11.3 & 1.12.x where authentication requests via the Kubernetes Auth backend intermittently fails. A fix for this defect has been published in version 0.14.1 of the Kubernetes Auth method and was included in Vault 1.12.3, Vault 1.13.0 and later. The reference can be found in the Vault changelog entry: - auth kubernetes: Ensure a consistent TLS configuration for all k8s API requests Pull requests 173 and GH-18716 Vault authentication requests destined for t"
+  },
+  {
+   "title": "Kubernetes Auth Method - 403 permission denied errors (ServiceAccount access to Kubernetes TokenReview API)",
+   "url": "https://www.ibm.com/support/pages/kubernetes-auth-method-403-permission-denied-errors-serviceaccount-access-kubernetes-tokenreview-api",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Kubernetes Auth Method - 403 permission denied errors ServiceAccount access to Kubernetes TokenReview API Kubernetes Auth Method - 403 permission denied errors ServiceAccount access to Kubernetes TokenReview API Introduction Prerequisites Cause Introduction Kubernetes application pods are unable to authenticate to the Vault Kubernetes Auth method and permanently receive the following error: 403: permission denied Prerequisites - Vault -- all versions supporting the Kubernetes Auth Method Cause One possible cause of this failure is due to the fact that the Kubernetes auth method accesses the Kubernetes TokenReview API to validate if the provided JWT is still valid. Therefore, Service Account "
+  },
+  {
+   "title": "Kubernetes auth method : Permission Denied error",
+   "url": "https://www.ibm.com/support/pages/kubernetes-auth-method-permission-denied-error",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Kubernetes auth method : Permission Denied error Kubernetes auth method : Permission Denied error Introduction Cause Overview of possible solutions if applicable Solutions: Introduction The kubernetes auth method can be used to authenticate with Vault using a Kubernetes Service Account Token. This method of authentication makes it easy to introduce a Vault token into a Kubernetes Pod. When a pod attempts to authenticate to vault via the configured kubernetes auth method; it gets Permission Denied error Cause - When a pod tried to authenticate to vault and you see an error like this in the audit logs of the vault pod: plaintext { time : 2020-05-23T00:16:35.5749466Z , type : response , auth :{"
+  },
+  {
+   "title": "Kubernetes authentication method returns \"Permission denied\" to the client and no error is logged in Vault's operational logs.",
+   "url": "https://www.ibm.com/support/pages/kubernetes-authentication-method-returns-permission-denied-client-and-no-error-logged-vaults-operational-logs",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Kubernetes authentication method returns Permission denied to the client and no error is logged in Vault s operational logs. Kubernetes authentication method returns Permission denied to the client and no error is logged in Vault s operational logs. Problem Problem: Solutions: Problem Problem: The Vault server needs the ability to communicate with the K8S API when the Kubernetes authentication method is being utilized, more specifically, accessing the TokenReview API endpoint of the Kubernetes cluster for token verification. This can be considered a back channel from the client s point of view. In particular cases, the connectivity between Vault and K8S API would be disrupted; in such cases,"
+  },
+  {
+   "title": "List Revoked Certificates of PKI Secrets Engine CRL",
+   "url": "https://www.ibm.com/support/pages/list-revoked-certificates-pki-secrets-engine-crl",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "List Revoked Certificates of PKI Secrets Engine CRL List Revoked Certificates of PKI Secrets Engine CRL Introduction Explanation Introduction Vault includes a public key infrastructure PKI secrets engine which can manage the lifecycle of certificates. One element of this lifecycle is the Certificate Revocation List CRL . A CRL is defined as a time-stamped and signed data structure that a certificate authority CA or CRL issuer periodically issues to communicate the revocation status of affected digital certificates. In short - if you revoke a certificate, information about that certificate is added to the CRL, which is the indicator of whether or not a certificate has been revoked. Reviewing "
+  },
+  {
+   "title": "Managing Size Values for Raft Automated Snapshots in Vault",
+   "url": "https://www.ibm.com/support/pages/managing-size-values-raft-automated-snapshots-vault",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Managing Size Values for Raft Automated Snapshots in Vault Managing Size Values for Raft Automated Snapshots in Vault Overview Problem Description Demo & Solution Conclusion Overview This article addresses the issue encountered with setting updating the local max space parameter for Raft automated snapshots in 32-bit and 64-bit Vault binaries. Specifically, it discusses the error encountered in a 32-bit binary and how switching to a 64-bit binary resolves the issue. As a matter of fact, the need to increase the local max space occurs when we observe the following error or similar on the Vault operational logs: snapshot failure: name=XYZ error= exceeded max space: written=1305201664,available"
+  },
+  {
+   "title": "Mitigating LDAP Group Policy Errors in Vault Versions 1.13.2, 1.12.6, and 1.11.10",
+   "url": "https://www.ibm.com/support/pages/mitigating-ldap-group-policy-errors-vault-versions-1132-1126-and-11110",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Mitigating LDAP Group Policy Errors in Vault Versions 1.13.2, 1.12.6, and 1.11.10 Mitigating LDAP Group Policy Errors in Vault Versions 1.13.2, 1.12.6, and 1.11.10 Problem Prerequisites if applicable Cause Solutions: Outcome Problem This article explains a known issue with certain versions of HashiCorp Vault when using LDAP authentication. If you are encountering problems with LDAP group policies not being attached to tokens after a Vault upgrade, this article aims to provide a solution. In Vault versions 1.13.2, 1.12.6, or 1.11.10, with an existing LDAP Auth configuration, users are able to log in but they encounter an error of type: no LDAP groups found in groupDN...only policies from loca"
+  },
+  {
+   "title": "New Raft Nodes failed to Join Cluster",
+   "url": "https://www.ibm.com/support/pages/new-raft-nodes-failed-join-cluster",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "New Raft Nodes failed to Join Cluster New Raft Nodes failed to Join Cluster Introduction Introduction New Raft Nodes failed to Join Cluster Typical Symptoms: Attempting to restore Raft DB node s , is not joining the cluster after restart and unsealing. Ref: https: developer.hashicorp.com vault tutorials raft raft-lost-quorum The following errors noted in the logs: Aug 30 14:46:09 vault-server 3329 : 2023-08-30T14:46:09.175Z INFO core: security barrier not initializedAug 30 14:46:09 vault-server 3329 : 2023-08-30T14:46:09.175Z INFO core.autoseal: seal configuration missing, but cannot check old path as core is sealed: seal type=recoveryAug 30 14:46:10 vault-server 3329 : 2023-08-30T14:46:10.9"
+  },
+  {
+   "title": "OIDC Authentication Fails on Performance Standby Nodes in Performance Secondary Cluster",
+   "url": "https://www.ibm.com/support/pages/oidc-authentication-fails-performance-standby-nodes-performance-secondary-cluster",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "OIDC Authentication Fails on Performance Standby Nodes in Performance Secondary Cluster OIDC Authentication Fails on Performance Standby Nodes in Performance Secondary Cluster Introduction Issue Summary Observed Logs Workaround Solution Introduction This article addresses a known issue from Vault 1.19.1 onwards where OIDC authentication attempts fail on performance standby nodes in a Vault performance secondary cluster. The error observed in the audit logs is: error : rpc error: code = Unknown desc = failed to create group: failed to persist packed storage entry: cannot write to readonly storage Issue Summary When users attempt to authenticate using OIDC against performance standby nodes par"
+  },
+  {
+   "title": "Performance Replication Error: Failed to enable replicated audit backend: permission denied",
+   "url": "https://www.ibm.com/support/pages/performance-replication-error-failed-enable-replicated-audit-backend-permission-denied",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Performance Replication Error: Failed to enable replicated audit backend: permission denied Performance Replication Error: Failed to enable replicated audit backend: permission denied Issue Perquisites Cause Solutions Outcome Additional Info Document Location Historical Number Performance Replication Error: Failed to enable replicated audit backend: permission denied Issue Performance Replication has stopped on the Performance Secondary. In addition, these two errors appear in the Vault operational logs: ERROR core: failed to enable replicated audit backend: mount=file error= sanity check failed; unable to open path to audit-log for writing: open path to audit-log: permission denied ERROR re"
+  },
+  {
+   "title": "Permission Denied During Vault SCEP Certificate Enrollment Due to ACL Policy Path Mismatch",
+   "url": "https://www.ibm.com/support/pages/permission-denied-during-vault-scep-certificate-enrollment-due-acl-policy-path-mismatch",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Permission Denied During Vault SCEP Certificate Enrollment Due to ACL Policy Path Mismatch Permission Denied During Vault SCEP Certificate Enrollment Due to ACL Policy Path Mismatch Problem Symptom Cause Environment Diagnosing The Problem Problem SCEP certificate enrollment or SCEP operations against the HashiCorp Vault PKI secrets engine fail with a permission denied error. The issue may occur when a SCEP client performs operations such as Certificate enrollment.The error can occur even when the SCEP authentication method, static challenge, PKI engine, and SCEP role have been configured successfully. Symptom The SCEP client receives a permission denied response when accessing the Vault SCEP"
+  },
+  {
+   "title": "Permission denied when trying to log into Kubernetes auth method",
+   "url": "https://www.ibm.com/support/pages/permission-denied-when-trying-log-kubernetes-auth-method",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Permission denied when trying to log into Kubernetes auth method Permission denied when trying to log into Kubernetes auth method Introduction Cause Solution Limitations and Known Issues Introduction This article uses Amazon Elastic Kubernetes Service EKS as an example, but the limitations discussed are not limited to EKS. Having connected an Amazon Elastic Kubernetes Service EKS cluster to HCP vault, when trying to log into Vault using the Kubernetes auth method, you may receive a permission denied error message like the below: ERROR auth.handler: error authenticating:error= Error making API request. URL: PUT $VAULT ADDR v1 admin auth kubernetes login Code: 403. Errors: permission denied Ca"
+  },
+  {
+   "title": "PKI Multi Issuer Functionality - Vault 1.11 and beyond - failed to persist issuer/chain to disk",
+   "url": "https://www.ibm.com/support/pages/pki-multi-issuer-functionality-vault-111-and-beyond-failed-persist-issuerchain-disk",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "PKI Multi Issuer Functionality - Vault 1.11 and beyond - failed to persist issuer chain to disk PKI Multi Issuer Functionality - Vault 1.11 and beyond - failed to persist issuer chain to disk Problem Applicability Verification References: Problem Vault introduced Multi-Issuer Functionality in version 1.11.0, allowing a single PKI mount to manage multiple Certificate Authority CA certificates issuers . This feature facilitates CA rotation, cross-signing, and seamless transitions between issuers. When upgrading Vault from versions prior to 1.11.0 to 1.11.0 or later, errors may occur due to leadership migration or storage issues, such as: error= failed to persist issuer id:xxxxx name:current-xx"
+  },
+  {
+   "title": "pki secret engine : internal error in GUI due to audit failure",
+   "url": "https://www.ibm.com/support/pages/pki-secret-engine-internal-error-gui-due-audit-failure",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "pki secret engine : internal error in GUI due to audit failure pki secret engine : internal error in GUI due to audit failure Summary: Problem description: Affected environment: Root cause: Summary: On vault version 1.20.x and above, PKI secrets engine UI page may return 500 \u201cinternal error\u201d when loading. This issue is seen specifically in the vault deployment where only audit device enabled is syslog based. Problem description: When navigating to a PKI secrets engine mount for example, pki int in the Vault UI on versions 1.20.x or later, the UI fails to load the PKI engine details page and shows an internal error similar to: plaintext Ember Data Request GET v1 pki int roles example?help=1 r"
+  },
+  {
+   "title": "Prevent Vault from Brute Force Attack - User Lockout",
+   "url": "https://www.ibm.com/support/pages/prevent-vault-brute-force-attack-user-lockout",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Prevent Vault from Brute Force Attack - User Lockout Prevent Vault from Brute Force Attack - User Lockout Problem Introduction Configuration Error that we get after user locked in the audit log Problem Introduction User Lockout is a new feature added in Vault 1.13.0 designed to prevent Brute Forcing of credentials across three initial Auth Methods, that are UserPass, Ldap, and Approle. If a user provides incorrect credentials several times in a row, Vault will stop trying to validate their credentials for a predefined period of time and instead return an error indicating permission denied. Configuration The user lockout feature is enabled by default with Vault 1.13.0. The following are the a"
+  },
+  {
+   "title": "Re-initialize Consul Storage for Vault",
+   "url": "https://www.ibm.com/support/pages/re-initialize-consul-storage-vault",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Re-initialize Consul Storage for Vault Re-initialize Consul Storage for Vault Problem This process is done manually by following these steps: Problem Reinitializing Consul storage for Vault is a process of resetting the state of a Vault server s backend storage, which is maintained in Consul. This process is usually carried out when there is a need to start with a clean slate, or when there are inconsistencies or errors in the backend storage. Reinitializing Consul storage for Vault is a critical process that should be approached with caution, as it involves deleting all of the data in the storage and starting over.This guide is intended to go through the process of reinitializing Vault with"
+  },
+  {
+   "title": "Recovering a Vault cluster from a lease explosion",
+   "url": "https://www.ibm.com/support/pages/recovering-vault-cluster-lease-explosion",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Recovering a Vault cluster from a lease explosion Recovering a Vault cluster from a lease explosion Symptom Cause Symptom You see one or more of the following: - Vault Enterprise Logins or secret requests fail with HTTP 429 because a lease count quota is full. The request path in the message varies: plaintext Error making API request. URL: PUT https: 127.0.0.1:61555 v1 auth userpass login foo Code: 429. Errors: 1 error occurred: request path auth userpass login foo : lease count quota exceeded - The active node uses more and more memory, becomes unresponsive, or is killed for running out of memory. - Unseal, restart, or a change of active node takes much longer than usual. - Revocations fall"
+  },
+  {
+   "title": "Rekeying Vault: Key Shares and Key Threshold output does not match specified",
+   "url": "https://www.ibm.com/support/pages/rekeying-vault-key-shares-and-key-threshold-output-does-not-match-specified",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Rekeying Vault: Key Shares and Key Threshold output does not match specified Rekeying Vault: Key Shares and Key Threshold output does not match specified Cause ... Cause When running the rekey operation, while Vault is using an HSM or Cloud KMS based auto-unseal, the target must be set to recovery . ... rekeying Vault, you will need to specify -target=recovery as per the NOTE section under the tutorial."
+  },
+  {
+   "title": "Replacing the TLS certificate and key on a running Vault cluster without requiring a restart/unseal",
+   "url": "https://www.ibm.com/support/pages/replacing-tls-certificate-and-key-running-vault-cluster-without-requiring-restartunseal",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Replacing the TLS certificate and key on a running Vault cluster without requiring a restart unseal Replacing the TLS certificate and key on a running Vault cluster without requiring a restart unseal Environment Steps This article covers how to replace the TLS and certificate and key on your Vault cluster without restarting the Vault process and avoiding downtime. Environment Please bear in mind the examples provided below are illustrative. Paths and network targets should be updated according to your environment. Steps 1. Confirm the path of the TLS certificate and key in your Vault configuration: plaintext grep tls path to vault.hcl 2. Validate the certificate metadata from the client side"
+  },
+  {
+   "title": "Resolving \"Security Barrier Not Initialized\" Error When Adding New Nodes to a Shamir-Sealed Vault Raft Cluster",
+   "url": "https://www.ibm.com/support/pages/resolving-security-barrier-not-initialized-error-when-adding-new-nodes-shamir-sealed-vault-raft-cluster",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Resolving Security Barrier Not Initialized Error When Adding New Nodes to a Shamir-Sealed Vault Raft Cluster Resolving Security Barrier Not Initialized Error When Adding New Nodes to a Shamir-Sealed Vault Raft Cluster cluster was configured to use Shamir Seal, which requires each newly initialized node to be manually unsealed before it ... report the security barrier not initialized error and preventing it from joining the cluster."
+  },
+  {
+   "title": "Revoking Vault leases in bulk",
+   "url": "https://www.ibm.com/support/pages/revoking-vault-leases-bulk",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Revoking Vault leases in bulk Revoking Vault leases in bulk Introduction Prerequisites Example script : Introduction As of Vault 1.16.0, new installations of Vault Enterprise will include a default global quota with a max leases value of 300000 . This value is an intentionally low limit, intended to prevent runaway leases in the event that no other lease count quota is specified. This limit will affect all new clusters with no pre-existing configuration. As with any other quota, the default can be directly increased, decreased, or removed using the lease-count-quotas endpoints. The default may also be overridden by higher precedence quotas specified for a namespace, mount, path, or role as d"
+  },
+  {
+   "title": "SAN TLS config for Vault High Availability Mode (HA)",
+   "url": "https://www.ibm.com/support/pages/san-tls-config-vault-high-availability-mode-ha",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "SAN TLS config for Vault High Availability Mode HA SAN TLS config for Vault High Availability Mode HA Introduction Example Error Overview of possible solutions if applicable Introduction Vault supports a multi-server mode for high availability. This mode protects against outages by running multiple Vault servers. High availability mode is automatically enabled when using a data store that supports it. Vault communicates with the other nodes using the IP addresses, that means the TLS certificates you provide to Vault, they need to have the DNS name as a certificate, but they also need a SAN Subject Alternative Name of the IP address in order for Vault to not complain about the certificate, ca"
+  },
+  {
+   "title": "Securing Vault AppRole Tokens with token_bound_cidrs and RoleID-Only Authentication",
+   "url": "https://www.ibm.com/support/pages/securing-vault-approle-tokens-tokenboundcidrs-and-roleid-only-authentication",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Securing Vault AppRole Tokens with token bound cidrs and RoleID-Only Authentication Securing Vault AppRole Tokens with token bound cidrs and RoleID-Only Authentication Problem Introduction Usage Example Fixing Permission Denied Errors During AppRole Authentication Resolution Steps Problem The token bound cidrs parameter in HashiCorp Vault AppRole provides a security mechanism that restricts token usage to specified IP ranges, helping to prevent misuse from unexpected locations. Introduction The token bound cidrs parameter in HashiCorp Vault AppRole is used to restrict which IP addresses are allowed to use tokens generated by that AppRole role. By specifying a list of CIDR blocks IP ranges , "
+  },
+  {
+   "title": "Setting the NO_PROXY Environment Variable",
+   "url": "https://www.ibm.com/support/pages/setting-noproxy-environment-variable",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Setting the NO PROXY Environment Variable Setting the NO PROXY Environment Variable Introduction Purpose Proxy Types Example Scenario: Introduction HashiCorp Vault is a leading tool for secrets management, often deployed in multi-cluster environments to ensure high availability and disaster recovery. When setting up a Vault multi-cluster environment, proper configuration of proxy settings is crucial. Proxy misconfigurations can lead to issues such as tls handshake timeout errors when secondary clusters attempt to communicate with the primary cluster during initial bootstrap. This article explains the role of the NO PROXY environment variable and how it can be used to resolve Vault cluster-to"
+  },
+  {
+   "title": "Shamir to AWS KMS seal migration failure",
+   "url": "https://www.ibm.com/support/pages/shamir-aws-kms-seal-migration-failure",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Shamir to AWS KMS seal migration failure Shamir to AWS KMS seal migration failure Shamir to AWS KMS seal migration failure Problem Introduction Cause Solution Additional Information Shamir to AWS KMS seal migration failure Problem Note: Using Vault replication to transition the seal type is the recommended approach instead of seal migration. Alternatively, it s best to verify the target seal stanza being migrated onto in an independent Vault instance prior to committing to performing the final migration steps in any live environment. Introduction This article specifically addresses the issue of missing the required permissions in an IAM policy for AWS KMS, which can cause a seal migration op"
+  },
+  {
+   "title": "Terraform Enterprise (Active/Active) In Unhealthy State With \"forward request error\" Error in Vault",
+   "url": "https://www.ibm.com/support/pages/terraform-enterprise-activeactive-unhealthy-state-forward-request-error-error-vault",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Terraform Enterprise Active Active In Unhealthy State With forward request error Error in Vault Terraform Enterprise Active Active In Unhealthy State With forward request error Error in Vault Introduction Prerequisites Cause Solution 1: Correct the Vault Cluster Address Introduction When Terraform Enterprise is deployed in Active Active operational mode, its internally-managed Vault is deployed in High Availability HA mode. In HA mode, one Vault node becomes the active node and handles all requests while the other nodes are passive standby , ready to take over if the active node fails. Standby nodes will forward requests to the active node, which advertises its address via the encrypted stor"
+  },
+  {
+   "title": "Terraform Enterprise Active/Active Vault Cluster HA Mode is on Standby for both Nodes",
+   "url": "https://www.ibm.com/support/pages/terraform-enterprise-activeactive-vault-cluster-ha-mode-standby-both-nodes",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Terraform Enterprise Active Active Vault Cluster HA Mode is on Standby for both Nodes Terraform Enterprise Active Active Vault Cluster HA Mode is on Standby for both Nodes Terraform Enterprise Active Active Vault Cluster HA Mode is on Standby for both Nodes Problem Cause Solution Procedure Terraform Enterprise Active Active Vault Cluster HA Mode is on Standby for both Nodes Problem In a Terraform Enterprise Active Active installation, the embedded Vault cluster nodes both display standby in High Availability HA mode, and the application fails to start on one node. The Terraform Enterprise Vault container log shows a connection error. auto ERROR core: error during forwarded RPC request: error"
+  },
+  {
+   "title": "Terraform Enterprise startup fails as Vault attempts to acquire a lock",
+   "url": "https://www.ibm.com/support/pages/terraform-enterprise-startup-fails-vault-attempts-acquire-lock",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Terraform Enterprise startup fails as Vault attempts to acquire a lock Terraform Enterprise startup fails as Vault attempts to acquire a lock Problem Prerequisites Cause Solution psql postgres: $TFE DATABASE USER:$TFE DATABASE PASSWORD@$TFE DATABASE HOST $TFE DATABASE NAME?$TFE DATABASE PARAMETERS Problem Terraform Enterprise may fail to start, and its internal Vault service log displays errors related to acquiring a database lock. The service appears to hang while waiting for the lock to be released. You can find these messages in the Vault log file, located at var log terraform-enterprise vault.log inside the container. The log entries resemble the following output, indicating that Vault i"
+  },
+  {
+   "title": "Token TTLs - Overview and Relationships",
+   "url": "https://www.ibm.com/support/pages/token-ttls-overview-and-relationships",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Token TTLs - Overview and Relationships Token TTLs - Overview and Relationships Introduction TTL Hierarchy Introduction Tokens are the main method by which clients authenticate with Vault. Each token has a time-to-live value associated with it, which controls how long the token is valid for. TTL Hierarchy When a token TTL is being assigned, in general it will be limited by the shortest time configured in the following order: 1. Requested Configured - The TTL requested as part of a creation or configured as part of a role or group. 2. Mount Tune - The default TTL given to any token generated by an authentication method 3. System Default - The configured system default TTL as part of the Vault"
+  },
+  {
+   "title": "Troubleshooting Common Errors while setting up AWS Auth method for HCP Vault Dedicated",
+   "url": "https://www.ibm.com/support/pages/troubleshooting-common-errors-while-setting-aws-auth-method-hcp-vault-dedicated",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Troubleshooting Common Errors while setting up AWS Auth method for HCP Vault Dedicated Troubleshooting Common Errors while setting up AWS Auth method for HCP Vault Dedicated Overview Issue Errors and Solutions: 2. InvalidClientTokenId Error: 3. Unable to resolve ARN : Overview This Knowledge Base KB article outlines some of the most common errors encountered when configuring the AWS auth method on HCP Vault Dedicated, along with their causes and recommended solutions to help you troubleshoot and resolve these issues effectively. Issue When attempting to authenticate using the AWS Auth Method in Vault, users may encounter several errors that prevent successful authentication. Below highlighte"
+  },
+  {
+   "title": "Troubleshooting Replication:  Problems During Initial Bootstrap",
+   "url": "https://www.ibm.com/support/pages/troubleshooting-replication-problems-during-initial-bootstrap",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Troubleshooting Replication: Problems During Initial Bootstrap Troubleshooting Replication: Problems During Initial Bootstrap API communications, as Vault standby nodes can service read requests and forward write requests to the active ... that you might need to disable the replication previously enabled, and generate a new token for the secondary."
+  },
+  {
+   "title": "Troubleshooting Terraform Enterprise Replicated Installation Failures on Linux Docker Hosts",
+   "url": "https://www.ibm.com/support/pages/troubleshooting-terraform-enterprise-replicated-installation-failures-linux-docker-hosts",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Troubleshooting Terraform Enterprise Replicated Installation Failures on Linux Docker Hosts Troubleshooting Terraform Enterprise Replicated Installation Failures on Linux Docker Hosts Seal Type shamir ... Bad plaintext Vault is already initialized + killing vault with pid 33 == Vault shutdown triggered + vault has exited + exiting vault setup with 0 + Retrieving Vault unseal key get unseal: could not decrypt unseal key: crypto: could not decrypt ciphertext: chacha20poly1305: message authentication failed Resolution Likely you have the wrong encryption password set for an existing data layer."
+  },
+  {
+   "title": "Troubleshooting Vault automated snapshot Issues",
+   "url": "https://www.ibm.com/support/pages/troubleshooting-vault-automated-snapshot-issues",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Troubleshooting Vault automated snapshot Issues Troubleshooting Vault automated snapshot Issues Problem Prerequisites Overview of possible solutions Solutions: Problem This article introduces ways to troubleshoot Vault auto snapshot Issues. For configuring auto snapshots in Vault, please refer to the article for GCP or AWS S3 or our official docs. Prerequisites - Vault Enterprise - Vault Automated Snapshots Overview of possible solutions Solutions: - List Automated Snapshot configuration: vault list sys storage raft snapshot-auto config - From the list of configurations, check the status of the one to troubleshoot by running the following command Please replace from the list returned above. "
+  },
+  {
+   "title": "UI: Invalid Snapshot via Performance Standby Nodes",
+   "url": "https://www.ibm.com/support/pages/ui-invalid-snapshot-performance-standby-nodes",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "UI: Invalid Snapshot via Performance Standby Nodes UI: Invalid Snapshot via Performance Standby Nodes Problem Resolution and Workaround Problem In Vault Enterprise, it s possible to encounter issues when a snapshot is downloaded from a Vault node UI. This occurs when the snapshot request is routed to a standby node rather than the active leader. Performance standby nodes are not designed to generate snapshots and may return incomplete or invalid files. In this case, the downloaded snapshot.gz is very small just a few bytes in size and unusable. For example, the snapshot size is only 9 bytes like below: To verify the snapshot, run the snapshot inspection command against snapshot.gz file: plai"
+  },
+  {
+   "title": "Unable to add a CRL Distribution Point to CSR",
+   "url": "https://www.ibm.com/support/pages/unable-add-crl-distribution-point-csr",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Unable to add a CRL Distribution Point to CSR Unable to add a CRL Distribution Point to CSR What is a CRL Distribution Point? Steps: Config example: What is a CRL Distribution Point? A Certificate Revocation List aka CRL is a distribution point that s itemising which certificates are revoked and or expired. A client application can download the CRL to determine if the certificate that it s about to use may be among those already revoked. Steps: 1. Create Root CA Vault cluster. Create PKI secret engine that does not have a CRL distribution point configured; 2. Create Intermediate CA Vault cluster. Create PKI secret engine that has a CRL distribution point defined in the configuration; 3. In t"
+  },
+  {
+   "title": "Unable to Unseal Vault- getting [WARN] stored unseal keys are supported, but none were found",
+   "url": "https://www.ibm.com/support/pages/unable-unseal-vault-getting-warn-stored-unseal-keys-are-supported-none-were-found",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Unable to Unseal Vault- getting WARN stored unseal keys are supported, but none were found Unable to Unseal Vault- getting WARN stored unseal keys are supported, but none were found Unable to Unseal Vault- getting WARN stored unseal keys are supported, but none were found Problem Prerequisites Cause Solutions: Unable to Unseal Vault- getting WARN stored unseal keys are supported, but none were found Problem The following log line is observed in Vault Operational Logs: WARN failed to unseal core: error= stored unseal keys are supported, but none were found And the node is unable to unseal itself and join the Vault cluster. Prerequisites - This article assumes that you are using Vault Auto-Uns"
+  },
+  {
+   "title": "Understanding Vault\u2019s Behavior with PostgreSQL Database Secrets Engine and Self-Managed Connections",
+   "url": "https://www.ibm.com/support/pages/understanding-vault%E2%80%99s-behavior-postgresql-database-secrets-engine-and-self-managed-connections",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Understanding Vault\u2019s Behavior with PostgreSQL Database Secrets Engine and Self-Managed Connections Understanding Vault\u2019s Behavior with PostgreSQL Database Secrets Engine and Self-Managed Connections Problem Scenario Analysis 1. Starting with Self-Managed and Attempting to Overwrite with Vault-Managed Success Error: cannot use both self-managed and vault-managed workflows 2. Starting with Vault-Managed and Overwriting with Self-Managed Success with warning about plaintext password Problem HashiCorp Vault\u2019s database secrets engine provides secure, dynamic access to databases by either managing credentials directly or delegating credential lifecycle management to external processes. When confi"
+  },
+  {
+   "title": "Understanding vault.db and raft.db in Vault Integrated Storage",
+   "url": "https://www.ibm.com/support/pages/understanding-vaultdb-and-raftdb-vault-integrated-storage",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Understanding vault.db and raft.db in Vault Integrated Storage Understanding vault.db and raft.db in Vault Integrated Storage Current Raft term - Commit index and last applied index - Membership change operations - Election metadata - Raft log metadata - Snapshot ... progression. Raft snapshots compact older log entries into raft snapshots to reduce storage and speed up"
+  },
+  {
+   "title": "Upgrading vault nodes without using automated upgrade feature of autopilot",
+   "url": "https://www.ibm.com/support/pages/upgrading-vault-nodes-without-using-automated-upgrade-feature-autopilot",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Upgrading vault nodes without using automated upgrade feature of autopilot Upgrading vault nodes without using automated upgrade feature of autopilot 284Z WARN storage.raft: failed to contact quorum of nodes, stepping down ... -15T10:04:52.112Z ERROR storage.raft: failed to heartbeat to: peer=192.168.50.42:8201 error= dial tcp 192.168.50.42:8201: connect: connection refused"
+  },
+  {
+   "title": "Usage of encrypted private key TCP listener of vault",
+   "url": "https://www.ibm.com/support/pages/usage-encrypted-private-key-tcp-listener-vault",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Usage of encrypted private key TCP listener of vault Usage of encrypted private key TCP listener of vault Overview Summary: Use case 1 : PKCS 1 private keys Use case 2 : PKCS 8 private keys Overview Vault allows making use of encrypted private keys in tls key file of listener stanza. This article details about the nuances based on private key encryption standard and best practises. Summary: Vault supports encrypted PKCS 1 private keys with headers like -----BEGIN RSA PRIVATE KEY----- and allows passphrase input at startup, but fails to handle encrypted PKCS 8 keys -----BEGIN ENCRYPTED PRIVATE KEY----- . Use case 1 : PKCS 1 private keys While making use of encrypted private key, it is require"
+  },
+  {
+   "title": "Vault and mlock()",
+   "url": "https://www.ibm.com/support/pages/vault-and-mlock",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault and mlock Vault and mlock Vault and mlock Problem Vault and mlock Problem By default, Vault calls mlockall at startup to lock its memory into RAM and prevent it from being swapped to disk. How this default applies depends on your version and storage backend: - Vault 1.19.x and earlier, all storage backends: if disable mlock is not set, Vault attempts to lock memory at startup. - Vault 1.20.0 and later, Integrated Storage Raft : there is no default. You must set disable mlock explicitly to true or false, or Vault fails to start. - Vault 1.20.0 and later, other storage backends: unchanged; if disable mlock is not set, Vault attempts to lock memory at startup. If you attempt to start Vaul"
+  },
+  {
+   "title": "Vault Auto-unseal with a Luna HSM configured for HSM High Availability",
+   "url": "https://www.ibm.com/support/pages/vault-auto-unseal-luna-hsm-configured-hsm-high-availability",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault Auto-unseal with a Luna HSM configured for HSM High Availability Vault Auto-unseal with a Luna HSM configured for HSM High Availability Problem Problem This article deals with identifying the necessary information in order to configure Vault enterprise to auto-unseal with an HSM where the HSM is configured for HSM high availability as per the HSM vendor s configuration. For support and assistance with the configuration of the HSM kindly contact your HSM provider. This article does not deal with configuring Vault seal high availability that was introduced in Vault 1.16 enterprise. For Vault seal high availability please refer to: Vault Documentation: Vault Seal High Availability Vault D"
+  },
+  {
+   "title": "Vault AWS Authentication Cross Account Access with STS",
+   "url": "https://www.ibm.com/support/pages/vault-aws-authentication-cross-account-access-sts",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault AWS Authentication Cross Account Access with STS Vault AWS Authentication Cross Account Access with STS Problem Introduction Problem Introduction The AWS auth method in HashiCorp Vault provides an automated mechanism to retrieve a Vault token for IAM principals and AWS EC2 instances. This allows users to authenticate with Vault using their AWS credentials. Here are some key points about the AWS auth method in HashiCorp Vault: - The AWS auth method requires the following resources in AWS: 1. 1. IAM policy that permits the appropriate access for the auth method 2. IAM user with programmatic access 3. One or more roles that will be assigned to other AWS services requiring authentication t"
+  },
+  {
+   "title": "Vault Backend CA Certificate Format",
+   "url": "https://www.ibm.com/support/pages/vault-backend-ca-certificate-format",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault Backend CA Certificate Format Vault Backend CA Certificate Format Problem Problem When configuring a Vault storage backend for TLS and providing the parameter value for specifying a Certificate Authority CA certificate for validation, it is important to ensure that this certificate is of the X509 PEM encoded format. Here is an example scenario where the certificate is provided in the incorrect format when configuring the Vault LDAP auth backend. First, configure the backend: plaintext $ vault write auth ldap config url= ldaps: ldaps.taco.example.com userattr= samAccountName userdn= OU= USERS,OU=EXAMPLE USERS,DC=TACO,DC=example,DC=com groupdn= OU= GROUPS,OU=EXAMPLE WIDGETS ,DC=TACO,DC=e"
+  },
+  {
+   "title": "Vault cannot find cluster leader during upgrade process",
+   "url": "https://www.ibm.com/support/pages/vault-cannot-find-cluster-leader-during-upgrade-process",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault cannot find cluster leader during upgrade process Vault cannot find cluster leader during upgrade process Problem Prerequisites Cause Solutions: Outcome Additional Information Document Location Vault cannot find cluster leader during upgrade process Problem When attempting to upgrade a Vault standby node, the Vault operational logs display a looping error: core: found new active node information, refreshingsealwrap: unwrapping entry: key=core leader 88f77ca8-7345-361a-e760-401ae5fa793bcore: found new active node information, refreshing...core: found new active node information, refreshingsealwrap: unwrapping entry: key=core leader 88f77ca8-7345-361a-e760-401ae5fa793b Additionally, Vaul"
+  },
+  {
+   "title": "Vault certificate authentication \"no client certificate found\" with AWS load balancer",
+   "url": "https://www.ibm.com/support/pages/vault-certificate-authentication-no-client-certificate-found-aws-load-balancer",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault certificate authentication no client certificate found with AWS load balancer Vault certificate authentication no client certificate found with AWS load balancer Vault certificate authentication no client certificate found with AWS load balancer Problem Issue Cause Solutions: Vault certificate authentication no client certificate found with AWS load balancer Problem Issue Trying to login authenticate using the TLS cert authentication method when Vault is deployed behind an AWS Application Load Balancer ALB or an Network Load Balancer NLB fails with error message: $ vault login -method=cert -client-cert=client.crt -client-key=client.key name=role Error authenticating: Error making API r"
+  },
+  {
+   "title": "Vault with Consul storage throwing EOF errors against Consul",
+   "url": "https://www.ibm.com/support/pages/vault-consul-storage-throwing-eof-errors-against-consul",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault with Consul storage throwing EOF errors against Consul Vault with Consul storage throwing EOF errors against Consul Introduction Prerequisites if applicable Solution Additional Information Introduction Prior to Consul version 1.9.0, when Consul s HTTP connections rate-limiting threshold is breached, they will silently reset without any error message present in the API calls, nor a message in the Consul logs. This could lead to a potential misdirection of troubleshooting into investigating network and security solutions on the path of the connections. Vault logs can present the following error message: plaintext error= Get http: 127.0.0.1:8500 v1 ... ?keys=&separator=%2F: EOF Prerequisi"
+  },
+  {
+   "title": "Vault: Error initializing core: Failed to lock memory: cannot allocate memory",
+   "url": "https://www.ibm.com/support/pages/vault-error-initializing-core-failed-lock-memory-cannot-allocate-memory",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault: Error initializing core: Failed to lock memory: cannot allocate memory Vault: Error initializing core: Failed to lock memory: cannot allocate memory Problem Prerequisites Cause Solution replicate... Problem The Terraform Enterprise application fails to start. tfe-base-startup container exits with a non-zero status code. auto Container tfe-base-startup failed: Container 5275bd7d6892a2dd400dab2e47f9529f4fe75d95a3ded95e16bb06d87d1b5e38 exited with non-zero exit status 1: The startup container logs show a timeout while waiting for a Vault token. auto INFO: Vault token retrieval timeout not yet reached ERROR: Operation timed out waiting for vault token Checking the logs for the tfe-vault c"
+  },
+  {
+   "title": "Vault fails to start with OCI KMS Seal",
+   "url": "https://www.ibm.com/support/pages/vault-fails-start-oci-kms-seal",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault fails to start with OCI KMS Seal Vault fails to start with OCI KMS Seal Problem Cause Solutions: Problem When attempting to set up OCI KMS Seal as documented, vault will fail to start. The following are examples of errors that may be encountered: plaintext Error parsing Seal configuration: key id not found for OCI KMS seal configuration plaintext Error parsing Seal configuration: error initializing OCI KMS client: failed creating NewKmsCryptoClientWithConfigurationProvider: can not create client, bad configuration: did not find a proper configuration for tenancy Cause These errors can be caused by either of the following: 1. Known issue parsing out the OCI seal key id from the vault co"
+  },
+  {
+   "title": "Vault fails to unseal after snapshot restore.",
+   "url": "https://www.ibm.com/support/pages/vault-fails-unseal-after-snapshot-restore",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault fails to unseal after snapshot restore. Vault fails to unseal after snapshot restore. Introduction Prerequisites if applicable Cause Introduction Vault fails to unseal after performing a Vault snapshot restore. In this particular use case the Snapshot was taken from a different Vault Cluster. The restore was performed on a 3 node Vault cluster, which has been newly initialized. Prerequisites if applicable - Vault Enterprise Edition - Integrated storage Raft backend - Vault Snapshots Cause - The Vault Operational logs for the Vault Active Node shows the following relevant entries: plaintext DEBUG core.cluster-listener: creating rpc dialer: address=192.168.0.39:8201 alpn=raft storage v1 "
+  },
+  {
+   "title": "Vault HA Cluster Failover Issues with Integrated Storage/Raft",
+   "url": "https://www.ibm.com/support/pages/vault-ha-cluster-failover-issues-integrated-storageraft",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault HA Cluster Failover Issues with Integrated Storage Raft Vault HA Cluster Failover Issues with Integrated Storage Raft Problem Prerequisites Cause Solutions: Outcome Problem - An active node in Vault HA Cluster in IS Raft fails, but the failover process does not trigger- the failover process does not promote available standby node to a new leader. - Restarting the standby nodes does not trigger leader election process. Prerequisites - Vault HA Cluster is only available through Vault Enterprise. In addition, this article assumes Integrated Storage Raft backend. Cause - The failure of an active node can be due to several common reasons, such as disk space issues, networking issues for nod"
+  },
+  {
+   "title": "Vault JWT Auth Error: error validating token: no issued at (iat), not before (nbf), or expiration time (exp) claims in token",
+   "url": "https://www.ibm.com/support/pages/vault-jwt-auth-error-error-validating-token-no-issued-iat-not-nbf-or-expiration-time-exp-claims-token",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault JWT Auth Error: error validating token: no issued at iat , not before nbf , or expiration time exp claims in token Vault JWT Auth Error: error validating token: no issued at iat , not before nbf , or expiration time exp claims in token Vault JWT Auth Error: error validating token: no issued at iat , not before nbf , or expiration time exp claims in token Summary Possible cause Resolution Update Your JWT Issuer to Include Required Claims : Update role config to disable not before leeway and expiration leeway : Best practices Vault JWT Auth Error: error validating token: no issued at iat , not before nbf , or expiration time exp claims in token Summary When using HashiCorp Vault\u2019s JWT or"
+  },
+  {
+   "title": "Vault on Kubernetes and  context deadline exceeded errors",
+   "url": "https://www.ibm.com/support/pages/vault-kubernetes-and-context-deadline-exceeded-errors",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault on Kubernetes and context deadline exceeded errors Vault on Kubernetes and context deadline exceeded errors Vault on Kubernetes and context deadline exceeded errors Introduction Cause Solutions: Additional Information Vault on Kubernetes and context deadline exceeded errors Introduction Sometimes customers who deploy Vault on Kubernetes, specially on the cloud like GKE or EKS, and Vault and try to auto unseal or the admin tries to unseal manually, they ll see context deadline exceeded error. Example Errors: - Running vault status would throw Error checking seal status: context deadline exceeded - Running vault operator init would give Error initializing: context deadline exceeded - See"
+  },
+  {
+   "title": "Vault LDAP auth method and external groups policy mapping",
+   "url": "https://www.ibm.com/support/pages/vault-ldap-auth-method-and-external-groups-policy-mapping",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault LDAP auth method and external groups policy mapping Vault LDAP auth method and external groups policy mapping Vault configuration Vault LDAP login follow external group policy mapping Vault configuration Enable Vault LDAP auth method and configure the connection. $ vault auth enable ldap$ vault write auth ldap config url= ldap: 192.168.4.29:389 bindpass= admin starttls=false userdn= ou=users,dc=example,dc=org groupdn= ou=groups,dc=example,dc=org binddn= cn=admin,dc=example,dc=org Skip the part of creating Vault policies of main-prod and main-admin, please refer to Vault policies for more information. Create a external group named prod, attach external group with policy main-prod. ... V"
+  },
+  {
+   "title": "Vault LDAP Auth: Users Unexpectedly Receiving Elevated Policies at Login",
+   "url": "https://www.ibm.com/support/pages/vault-ldap-auth-users-unexpectedly-receiving-elevated-policies-login",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault LDAP Auth: Users Unexpectedly Receiving Elevated Policies at Login Vault LDAP Auth: Users Unexpectedly Receiving Elevated Policies at Login Problem Symptom Cause Problem Users who log in to Vault through the LDAP auth method get a privileged policy for example, admin , even though they are not members of the directory group that maps to it. Often every LDAP user is affected. Symptom - vault token lookup for an ordinary user shows a privileged policy in policies token policies . - identity policies is empty, so the policy comes from the LDAP auth method, not from an identity group. - The audit log shows the same set of policies on almost every LDAP login, regardless of who logs in. Caus"
+  },
+  {
+   "title": "Vault LDAP authentication starts failing after adding users to AD Protected Users Security Group",
+   "url": "https://www.ibm.com/support/pages/vault-ldap-authentication-starts-failing-after-adding-users-ad-protected-users-security-group",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault LDAP authentication starts failing after adding users to AD Protected Users Security Group Vault LDAP authentication starts failing after adding users to AD Protected Users Security Group Introduction Prerequisites: Cause Introduction After adding the Active Directory User specified as BINDDN for either the Vault LDAP Authentication Method or the Vault LDAP Secrets Engine to the Active Directory Protected Users Security Group, authentication for the Active Directory User specified as BINDDN starts to fail. As a consequence of this authentication for all users using the affected Vault LDAP Authentication Method will fail. If the Active Directory User specified as BINDDN is not added to "
+  },
+  {
+   "title": "Vault Node Remains Sealed and Reports \u201cRemoved From Cluster: true\u201d After Maintenance",
+   "url": "https://www.ibm.com/support/pages/vault-node-remains-sealed-and-reports-%E2%80%9Cremoved-cluster-true%E2%80%9D-after-maintenance",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault Node Remains Sealed and Reports \u201cRemoved From Cluster: true\u201d After Maintenance Vault Node Remains Sealed and Reports \u201cRemoved From Cluster: true\u201d After Maintenance Introduction Cause Step 1: Validate the Node\u2019s State Introduction After OS\u2011level or platform maintenance, a Vault node may unexpectedly remain sealed and show: auto Removed From Cluster: true in vault status . In this state, the node cannot join Raft consensus or participate in cluster operations. This behavior most often occurs when the node has been pruned from Raft membership, either: - Automatically by Autopilot health check failures, network isolation, quorum issues , or - Manually by operators during maintenance Once r"
+  },
+  {
+   "title": "Vault nodes are in \"active-active\" state while storage migration from Consul to Raft",
+   "url": "https://www.ibm.com/support/pages/vault-nodes-are-active-active-state-while-storage-migration-consul-raft",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault nodes are in active-active state while storage migration from Consul to Raft Vault nodes are in active-active state while storage migration from Consul to Raft The solution to avoid such cases: Vault uses several storage backends to store its secrets and other configuration data. Integrated Storage ie. Raft provides several advantages like operational efficiency, network efficiency, etc. over the external storage backend. There is a guide to cover the steps required to perform storage migration. In this guide we will cover one such scenario where Vault storage migration from Consul to Raft will lead to Vault nodes getting into active-active state, and how we could avoid such cases. ..."
+  },
+  {
+   "title": "Vault Raft Autopilot reporting follower nodes as unhealthy",
+   "url": "https://www.ibm.com/support/pages/vault-raft-autopilot-reporting-follower-nodes-unhealthy",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault Raft Autopilot reporting follower nodes as unhealthy Vault Raft Autopilot reporting follower nodes as unhealthy Prerequisites if applicable Cause Prerequisites if applicable - Vault Enterprise - Vault Telemetry - Vault Integrated storage Raft backend only Cause The fact that a follower node is being reported as unhealthy typically occurs when the the values set for either max trailing logs or last contact threshold have been exceeded. The last contact threshold exceeded issue can occur in case of for example connectivity issues or the node being unavailable. - max trailing logs int: 1000 - Amount of entries in the Raft Log that a server can be behind before being considered unhealthy. "
+  },
+  {
+   "title": "Vault Raft Join Fails With: \u201cnode has been removed from the HA cluster. All Vault data must be cleaned up before it can be added back\u201d",
+   "url": "https://www.ibm.com/support/pages/vault-raft-join-fails-%E2%80%9Cnode-has-been-removed-ha-cluster-all-vault-data-must-be-cleaned-it-can-be-added-back%E2%80%9D",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault Raft Join Fails With: \u201cnode has been removed from the HA cluster. All Vault data must be cleaned up before it can be added back\u201d Vault Raft Join Fails With: \u201cnode has been removed from the HA cluster. All Vault data must be cleaned up before it can be added back\u201d Introduction Prerequisites Cause 1. Manual Peer Removal 2. Autopilot Pruning 3. Local Raft State Corruption 4. Node Restart With Outdated Raft Metadata Published: 2026-07-06T17:45:59.000Z Introduction This article addresses a specific error that occurs when attempting to rejoin a Vault Enterprise Integrated Storage Raft node to a cluster. The error indicates the node was previously removed from Raft membership, and its local R"
+  },
+  {
+   "title": "Vault Raft: \"Preventing server addition that would require removal of too many servers and cause cluster instability\"",
+   "url": "https://www.ibm.com/support/pages/vault-raft-preventing-server-addition-would-require-removal-too-many-servers-and-cause-cluster-instability",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault Raft: Preventing server addition that would require removal of too many servers and cause cluster instability Vault Raft: Preventing server addition that would require removal of too many servers and cause cluster instability Problem Symptom Cause Environment Check 1: Confirm cluster addr is set on the joining node Check 2: Confirm cluster addr points to the node itself Check 3: Confirm cluster addr is unique across all nodes Resolving The Problem vault-0 \u2014 config.hcl api addr = https: vault-0.example.com:8200 cluster addr = https: vault-0.example.com:8201 vault-1 \u2014 config.hcl api addr = https: vault-1.example.com:8200 cluster addr = https: vault-1.example.com:8201 vault-2 \u2014 config.hcl"
+  },
+  {
+   "title": "Vault Raft quorum recovery fails with error: \"not part of stable configuration, aborting election\"",
+   "url": "https://www.ibm.com/support/pages/vault-raft-quorum-recovery-fails-error-not-part-stable-configuration-aborting-election",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault Raft quorum recovery fails with error: not part of stable configuration, aborting election Vault Raft quorum recovery fails with error: not part of stable configuration, aborting election Introduction Prerequisites if applicable Cause Introduction Performing a Vault Quorum recovery using a peers.json file fails with the following message: WARN storage.raft: not part of stable configuration, aborting election This is the relevant section of the Vault Operational Log: INFO storage.raft: raft recovery initiated: recovery file=peers.json INFO storage.raft: raft recovery found new config: config= { {Voter vault 4 192.168.56.9:8201} } INFO storage.raft: snapshot restore progress: id=bolt-sna"
+  },
+  {
+   "title": "Vault Replication issues on AWS Auto Scaling Groups",
+   "url": "https://www.ibm.com/support/pages/vault-replication-issues-aws-auto-scaling-groups",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault Replication issues on AWS Auto Scaling Groups Vault Replication issues on AWS Auto Scaling Groups Introduction Prerequisites if applicable Cause Introduction This article documents workarounds for a known defect in Vault Enterprise Replication where a Secondary cluster, Disaster Recovery DR and or Performance Replication PR , is unable to re-establish connections with their configured primary cluster. While the issue can occur on any platform, it s commonly observed when Vault is deployed on AWS using Auto Scaling Groups ASGs . Update: A fix for this issue was included in Vault Enterprise versions 1.13.3, 1.12.7 and 1.11.11 A Secondary DR PR cluster keeps a list containing the node IPs"
+  },
+  {
+   "title": "Vault Returns \"Required Index State Not Present\" (HTTP 412)",
+   "url": "https://www.ibm.com/support/pages/vault-returns-required-index-state-not-present-http-412",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault Returns Required Index State Not Present HTTP 412 Vault Returns Required Index State Not Present HTTP 412 Error Observed: Symptoms Root Cause Step A \u2014 Immediate Mitigation No Config Change Required Step B \u2014 Permanent Fix: Enable Request Forwarding on Performance Standbys Error Observed: Error making API request. URL: PUT https: vault-address v1 ... Code: 412. Errors: required index state not present Symptoms - Vault cluster returns required index state not present intermittently after a license update. - Intermittent HTTP 412 responses from the cluster. - 4 out of 5 nodes marked unhealthy by the Load Balancer. - Stale data served to clients \u2014 updated data not visible immediately after "
+  },
+  {
+   "title": "Vault Seal Migration: Transitioning from PKCS#11 to Transit Seal Using Seal HA",
+   "url": "https://www.ibm.com/support/pages/vault-seal-migration-transitioning-pkcs11-transit-seal-using-seal-ha",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault Seal Migration: Transitioning from PKCS 11 to Transit Seal Using Seal HA Vault Seal Migration: Transitioning from PKCS 11 to Transit Seal Using Seal HA Introduction Prerequisites Cause Overview of Possible Solutions Solutions Solution 1: Seal HA Implementa... Introduction This knowledge base article provides guidance for transitioning a Vault cluster from PKCS 11 seal to Transit seal auto-unsealing using Seal HA High Availability functionality, covering both RAFT and Consul backend storage configurations. Brief description of the problem to be solved Organizations need to migrate their Vault clusters from PKCS 11 HSM sealing to Transit seal auto-unsealing to leverage Seal HA capabiliti"
+  },
+  {
+   "title": "Vault Service Fails to Start on Linux Due to Read-Only Filesystem",
+   "url": "https://www.ibm.com/support/pages/vault-service-fails-start-linux-due-read-only-filesystem",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault Service Fails to Start on Linux Due to Read-Only Filesystem Vault Service Fails to Start on Linux Due to Read-Only Filesystem Vault Service Fails to Start on Linux Due to Read-Only Filesystem Introduction Prerequisites if applicable Cause Vault Service Fails to Start on Linux Due to Read-Only Filesystem Introduction Attempting to initialize the Vault service using systemd on a linux operation system. After starting the service is enters a failed state. The associated error log for the failed process is something along the lines of: Error initializing storage of type raft: failed to create fsm: failed to open bolt file: open etc vault data1 vault.db: read-only file system The actual fil"
+  },
+  {
+   "title": "Vault SIGHUP Behavior",
+   "url": "https://www.ibm.com/support/pages/vault-sighup-behavior",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault SIGHUP Behavior Vault SIGHUP Behavior : TLS certificates used by Vault listeners are reloaded. When the certificate files on the host are ... loaded by Vault will remain in use until a SIGHUP is received, or until the Vault process is restarted. - Note: the location of the TLS certificates"
+  },
+  {
+   "title": "Vault Storage Backend Migration on Kubernetes, OpenShift, AKS or EKS",
+   "url": "https://www.ibm.com/support/pages/vault-storage-backend-migration-kubernetes-openshift-aks-or-eks",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault Storage Backend Migration on Kubernetes, OpenShift, AKS or EKS Vault Storage Backend Migration on Kubernetes, OpenShift, AKS or EKS Vault Storage Backend Migration on Kubernetes, OpenShift, AKS or EKS Introduction Cause Vault Storage Backend Migration on Kubernetes, OpenShift, AKS or EKS Introduction When migrating the Vault backend on Kubernetes, OpenShift, AKS or EKS there are additional steps because the pod is always running. When doing a backend migration, Vault needs to be stopped to complete this process. Cause Below are a list of example errors when attempting a backend migration, while Vault is deployed on Kubernetes, OpenShift, AKS or EKS. Example 1: When migrating to Integra"
+  },
+  {
+   "title": "Vault TLS errors: \"client offered only unsupported versions/no cipher suite supported\"",
+   "url": "https://www.ibm.com/support/pages/vault-tls-errors-client-offered-only-unsupported-versionsno-cipher-suite-supported",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault TLS errors: client offered only unsupported versions no cipher suite supported Vault TLS errors: client offered only unsupported versions no cipher suite supported Introduction: Common issues & troubleshooting: Error message to verify: Cause: Solution: Error message to verify: Cause: Solution: Introduction: While using vault with TLS enabled always recommended for production cluster , communication from client to server happens using TLS protocols. Post enabling this, there might be some issues that can show up in your environment, even if the Vault service is up and running. By default, Vault TCP listeners only accept TLS 1.2 or 1.3 connections and will drop connection requests from c"
+  },
+  {
+   "title": "Vault Transit Auto-unseal Seal Migration to Shamir",
+   "url": "https://www.ibm.com/support/pages/vault-transit-auto-unseal-seal-migration-shamir",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault Transit Auto-unseal Seal Migration to Shamir Vault Transit Auto-unseal Seal Migration to Shamir Vault 1 and Vault 2 are two separate stand-alone Vault clusters where one protects another s master key. Vault 2 is the vault cluster with the transit secret engine, it is the encryption service provider, and its transit key protects the Vault 1 server s master key. Vault 2 is the vault cluster auto-unsealed by Vault 1. This KB is going to cover the process of migrating Vault 2 from Transit Auto-unseal back to Shamir seal type. ... Update Vault1 server configuration file seal transit by adding disabled = true into seal stanza ... 7. ... Result: Transit seal to Shamir seal migration is now fi"
+  },
+  {
+   "title": "Vault unable to initialise or rekey when using PGP key due to error",
+   "url": "https://www.ibm.com/support/pages/vault-unable-initialise-or-rekey-when-using-pgp-key-due-error",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Vault unable to initialise or rekey when using PGP key due to error Vault unable to initialise or rekey when using PGP key due to error Introduction Solutions: Outcome Additional Information Introduction When attempting to either rekey or initialise Vault you may receive the following error: plaintext invalid rekey seal configuration: error parsing given PGP key: openpgp: invalid data: tag byte does not have MSB set This error is logged when Vault is unable to read one of the supplied PGP key files. Solutions: - Confirm that the permissions for each of the files on disk containing a PGP key are suitable for reading by the Vault process. - Confirm that the names of the files supplied as part "
+  },
+  {
+   "title": "Why am I seeing \"Request body(XXX bytes) too large\" errors in my logs?",
+   "url": "https://www.ibm.com/support/pages/why-am-i-seeing-request-bodyxxx-bytes-too-large-errors-my-logs",
+   "section": "IBM Support KB",
+   "source": "kb",
+   "keywords": "Why am I seeing Request body XXX bytes too large errors in my logs? Why am I seeing Request body XXX bytes too large errors in my logs? Why am I seeing Request body XXX bytes too large errors in my logs? Introduction Cause Solution Additional Information Why am I seeing Request body XXX bytes too large errors in my logs? Introduction When using Consul as a storage backend for Vault, or Integrated Storage Raft it is possible the data attempting to be saved to storage exceeds the maximum request length configured. These requests will fail with an error similar to: rpc error: code = Unknown desc = failed to create an entity for the authenticated alias: failed to persist packed storage entry: Fa"
+  }
+ ]
+}

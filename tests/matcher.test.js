@@ -136,17 +136,46 @@ describe('article ranking', () => {
     }
   })
 
-  it('ranks seal documentation first for a seal error', async () => {
+  it('indexes verified IBM Support KB articles for HashiCorp Vault', async () => {
+    const kb = (await import('../src/data/vault-kb-articles.json')).default
+    expect(kb.articles.length).toBeGreaterThan(80)
+    for (const a of kb.articles) {
+      expect(a.url).toMatch(/^https:\/\/www\.ibm\.com\/support\/pages\//)
+      expect(a.source).toBe('kb')
+      expect(a.title.length).toBeGreaterThan(4)
+      expect(a.keywords.length).toBeGreaterThan(10)
+    }
+  })
+
+  it('ranks seal articles first for a seal error', async () => {
     const { rankArticles } = await import('../src/articles.js')
     const entry = catalog.entries.find((e) => e.id === 'seal-vault-sealed')
     const ranked = rankArticles(entry, entry.examples[0])
     expect(ranked.length).toBeGreaterThan(1)
-    expect(ranked[0].article.url).toContain('/vault/')
+    expect(ranked[0].article.url).toMatch(/^https:\/\/(developer\.hashicorp\.com\/vault\/|www\.ibm\.com\/support\/pages\/)/)
     const titles = ranked.map((r) => r.article.title.toLowerCase()).join(' ')
     expect(titles).toContain('seal')
     // ranked output is ordered by descending score
     const scores = ranked.map((r) => r.score)
     expect([...scores].sort((x, y) => y - x)).toEqual(scores)
+  })
+
+  it('surfaces real KB articles at the top for specific troubleshooting errors', async () => {
+    const { rankArticles } = await import('../src/articles.js')
+    for (const [id, expectedSubstring] of [
+      ['seal-mlock', 'mlock'],
+      ['raft-lost-quorum', 'quorum'],
+      ['raft-node-removed', 'removed'],
+      ['tls-unknown-authority', 'unknown authority'],
+      ['token-quota-exceeded', 'quota'],
+      ['auth-kubernetes', 'kubernetes'],
+    ]) {
+      const entry = catalog.entries.find((e) => e.id === id)
+      const ranked = rankArticles(entry, entry.examples[0])
+      expect(ranked[0].article.source).toBe('kb')
+      expect(ranked[0].article.url).toMatch(/^https:\/\/www\.ibm\.com\/support\/pages\//)
+      expect(ranked.map((r) => r.article.title.toLowerCase()).join(' ')).toContain(expectedSubstring)
+    }
   })
 
   it('prefers conceptual guides over raw API references', async () => {
