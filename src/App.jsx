@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { analyze, catalog, VAULT_VERSIONS } from './matcher.js'
+import { analyze, appliesTo, catalog, VAULT_VERSIONS } from './matcher.js'
 import ResultCard from './components/ResultCard.jsx'
 import NoMatch from './components/NoMatch.jsx'
 
@@ -30,7 +30,7 @@ const SAMPLE_IDS = [
 const CATALOG_SAMPLES = SAMPLE_IDS
   .map((id) => catalog.entries.find((e) => e.id === id))
   .filter(Boolean)
-  .map((e) => ({ id: e.id, title: e.title, subsystem: e.subsystem, text: e.examples[0] }))
+  .map((e) => ({ id: e.id, title: e.title, subsystem: e.subsystem, versions: e.versions, text: e.examples[0] }))
 
 const SAMPLES = [
   ...CATALOG_SAMPLES,
@@ -46,8 +46,6 @@ const SAMPLES = [
   },
 ]
 
-const SAMPLE_SUBSYSTEMS = [...new Set(SAMPLES.map((s) => s.subsystem))]
-
 const subsystems = new Set(catalog.entries.map((e) => e.subsystem))
 
 function App() {
@@ -59,9 +57,21 @@ function App() {
   const [sampleFilter, setSampleFilter] = useState('all')
   const analyzedText = useRef(null)
 
+  const applicableSamples = useMemo(
+    () => SAMPLES.filter((s) => appliesTo(s, vaultVersion)),
+    [vaultVersion],
+  )
+  const sampleSubsystems = useMemo(
+    () => [...new Set(applicableSamples.map((s) => s.subsystem))],
+    [applicableSamples],
+  )
+  const effectiveSampleFilter =
+    sampleFilter === 'all' || sampleSubsystems.includes(sampleFilter) ? sampleFilter : 'all'
   const visibleSamples = useMemo(
-    () => (sampleFilter === 'all' ? SAMPLES : SAMPLES.filter((s) => s.subsystem === sampleFilter)),
-    [sampleFilter],
+    () => (effectiveSampleFilter === 'all'
+      ? applicableSamples
+      : applicableSamples.filter((s) => s.subsystem === effectiveSampleFilter)),
+    [applicableSamples, effectiveSampleFilter],
   )
 
   const lineCount = useMemo(() => input.split('\n').filter((l) => l.trim()).length, [input])
@@ -136,11 +146,11 @@ function App() {
               <select
                 className="sample-filter"
                 aria-label="Filter samples by subsystem"
-                value={sampleFilter}
+                value={effectiveSampleFilter}
                 onChange={(e) => setSampleFilter(e.target.value)}
               >
-                <option value="all">All subsystems ({SAMPLES.length})</option>
-                {SAMPLE_SUBSYSTEMS.map((sub) => (
+                <option value="all">All subsystems ({applicableSamples.length})</option>
+                {sampleSubsystems.map((sub) => (
                   <option key={sub} value={sub}>{sub}</option>
                 ))}
               </select>
