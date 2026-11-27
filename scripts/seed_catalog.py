@@ -562,12 +562,12 @@ add("network-plugin-exited", "Plugin process failed to start", "network", "both"
 
 # ---------------- TOKEN / LEASE ----------------
 add("network-listener-bind", "Listener cannot bind its address", "network", "external",
-  [r"listen tcp .*: bind: (permission denied|address already in use|cannot assign requested address)", r"bind: address already in use", r"Error initializing listener of type tcp: listen tcp"],
+  [r"listen tcp[46]? .*: bind: (permission denied|address already in use|cannot assign requested address)", r"bind: address already in use", r"Error initializing listener of type tcp: listen tcp"],
   "Vault could not open its API or cluster listener socket. This is an OS-level problem with the address or port, not a Vault token or policy problem.",
   ["Two listener stanzas (or api/cluster addresses) use the same port.", "Listener address is an IP that does not exist on this host."],
   ["Another process (or an old Vault) already holds the port.", "Port below 1024 without CAP_NET_BIND_SERVICE for the vault user.", "SELinux/AppArmor denies the bind."],
   [s("Find what already holds the port", "sudo ss -ltnp | grep -E ':8200|:8201'"), s("Check the listener address and cluster_address in the config", "grep -nE 'address|cluster_address' /etc/vault.d/vault.hcl"), s("For ports below 1024, add the bind capability while keeping cap_ipc_lock (setcap replaces the whole set; check getcap first)", "getcap $(readlink -f $(which vault)); sudo setcap cap_ipc_lock,cap_net_bind_service=+ep $(readlink -f $(which vault))"), s("Check SELinux denials", "sudo ausearch -m avc -ts recent | grep vault")],
-  [R_TCP], ["Error initializing listener of type tcp: listen tcp 0.0.0.0:443: bind: permission denied", "Error initializing listener of type tcp: listen tcp 0.0.0.0:8200: bind: address already in use"],
+  [R_TCP], ["Error initializing listener of type tcp: listen tcp 0.0.0.0:443: bind: permission denied", "Error initializing listener of type tcp: listen tcp 0.0.0.0:8200: bind: address already in use", "Error initializing listener of type tcp: listen tcp4 0.0.0.0:443: bind: permission denied"],
   probe="", origin="Go net listener bind error surfaced by Vault at startup")
 add("token-permission-denied", "Permission denied", "token", "internal",
   [r"^(?!.*(?:bind|open [^:]+|mkdir [^:]+|stat [^:]+|lstat [^:]+|chmod [^:]+|chown [^:]+): permission denied).*\bpermission denied\b", r"Code: 403\. Errors:\s*\*\s*(1 error occurred:\s*\*\s*)?permission denied"],

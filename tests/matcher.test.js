@@ -28,6 +28,11 @@ describe('normalize', () => {
       .toBe('expiration: failed to revoke lease')
   })
 
+  it('keeps a leading "Error" word that is not a log level', () => {
+    expect(normalizeLine('Error initializing listener of type tcp: listen tcp4 0.0.0.0:443: bind: permission denied'))
+      .toBe('Error initializing listener of type tcp: listen tcp4 0.0.0.0:443: bind: permission denied')
+  })
+
   it('drops blank lines', () => {
     expect(normalize('\n  \nfoo\n\n')).toEqual(['foo'])
   })

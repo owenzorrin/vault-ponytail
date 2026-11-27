@@ -3229,7 +3229,7 @@
       "subsystem": "network",
       "location": "external",
       "patterns": [
-        "listen tcp .*: bind: (permission denied|address already in use|cannot assign requested address)",
+        "listen tcp[46]? .*: bind: (permission denied|address already in use|cannot assign requested address)",
         "bind: address already in use",
         "Error initializing listener of type tcp: listen tcp"
       ],
@@ -3269,7 +3269,8 @@
       ],
       "examples": [
         "Error initializing listener of type tcp: listen tcp 0.0.0.0:443: bind: permission denied",
-        "Error initializing listener of type tcp: listen tcp 0.0.0.0:8200: bind: address already in use"
+        "Error initializing listener of type tcp: listen tcp 0.0.0.0:8200: bind: address already in use",
+        "Error initializing listener of type tcp: listen tcp4 0.0.0.0:443: bind: permission denied"
       ],
       "source": {
         "repo": null,
